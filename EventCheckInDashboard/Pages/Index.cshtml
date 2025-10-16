@@ -57,73 +57,59 @@ else
                 <table class="table table-bordered tier-table">
                     <thead>
                         <tr>
-                            <th></th>
-                            <th>17 OCT</th>
-                            <th>18 OCT</th>
-                            <th>19 OCT</th>
-                            <th>20 OCT</th>
-                            <th>21 OCT</th>
-                            <th>22 OCT</th>
-                            <th>23 OCT</th>
-                            <th>TOTAL<br>BY TIER</th>
+                            @foreach (var header in Model.TableHeaders)
+                            {
+                                <!-- ปรับปรุง header ให้แสดงผลถูกต้อง -->
+                                if (header == "Tier")
+                                {
+                                    <th></th>
+                                }
+                                else if (header.ToUpper().Contains("TOTAL BY TIER"))
+                                {
+                                    <th>TOTAL<br>BY TIER</th>
+                                }
+                                else
+                                {
+                                    <th>@header.ToUpper()</th>
+                                }
+                            }
                         </tr>
                     </thead>
-                    <tbody id="tierTableBody">
-                        <tr class="tier-navy">
-                            <td><strong>NAVY</strong></td>
-                            <td>200</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="green-total">200</td>
-                        </tr>
-                        <tr class="tier-scarlet">
-                            <td><strong>SCARLET</strong></td>
-                            <td>80</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="green-total">80</td>
-                        </tr>
-                        <tr class="tier-crown">
-                            <td><strong>CROWN</strong></td>
-                            <td>80</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="green-total">80</td>
-                        </tr>
-                        <tr class="tier-vega">
-                            <td><strong>VEGA</strong></td>
-                            <td>40</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="green-total">40</td>
-                        </tr>
-                        <tr class="tier-total">
-                            <td><strong>TOTAL<br>MEMBER<br>BY DAY</strong></td>
-                            <td>400</td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td></td>
-                            <td class="total-value">400</td>
-                        </tr>
+                    <tbody>
+                        @foreach (var row in Model.TableData)
+                        {
+                            var rowData = (IDictionary<string, object>)row;
+                            var tierName = rowData[Model.TableHeaders[0]].ToString();
+
+                            <!-- กำหนด class สำหรับแต่ละแถว -->
+                            var rowClass = "tier-" + tierName.ToLower().Replace(" ", "-").Replace("_", "-");
+                            if (tierName.Contains("TOTAL MEMBER"))
+                            {
+                                rowClass = "tier-total";
+                            }
+
+                            <tr class="@rowClass">
+                                @foreach (var header in Model.TableHeaders)
+                                {
+                                    var cellValue = rowData[header];
+
+                                    <!-- จัดรูปแบบการแสดงผลของเซลล์ -->
+                                    if (header == "Tier")
+                                    {
+                                        <td><strong>@Html.Raw(tierName.Replace("TOTAL MEMBER BY DAY", "TOTAL<br>MEMBER<br>BY DAY"))</strong></td>
+                                    }
+                                    else if (header.ToUpper().Contains("TOTAL BY TIER"))
+                                    {
+                                        var totalClass = tierName.Contains("TOTAL MEMBER") ? "total-value" : "green-total";
+                                        <td class="@totalClass">@cellValue</td>
+                                    }
+                                    else
+                                    {
+                                        <td>@(cellValue.ToString() == "0" ? "" : cellValue)</td>
+                                    }
+                                }
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>

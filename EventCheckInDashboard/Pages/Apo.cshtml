@@ -33,34 +33,30 @@ else
             </div>
         </div>
 
-        <!-- Left Table -->
-        <div class="table-container">
-            <table class="table table-bordered data-table">
-                <thead>
-                    <tr>
-                        <th colspan="2">17 OCT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="row-video">
-                        <td class="total-label">แลก360กะรัต</td>
-                        <td><strong>300</strong></td>
-                    </tr>
-                    <tr class="row-member">
-                        <td class="total-label">สมาชิกใหม่</td>
-                        <td><strong>50</strong></td>
-                    </tr>
-                    <tr class="row-card">
-                        <td class="total-label">CARD X</td>
-                        <td><strong>30</strong></td>
-                    </tr>
-                    <tr class="row-total">
-                        <td class="total-label">TOTAL BY DAY</td>
-                        <td><strong>380</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <!-- Left Table -->
+            <div class="table-container">
+                <table class="table table-bordered data-table">
+                    <thead>
+                        <tr>
+                            <!-- สามารถปรับแก้ให้เป็นวันที่ปัจจุบันได้หากต้องการ -->
+                            <th colspan="2">17 OCT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.DailyBreakdown)
+                        {
+                            <tr class="row-@item.Label.ToLower().Replace(" ", "-")">
+                                <td class="total-label">@item.Label</td>
+                                <td><strong>@item.Value.ToString("N0")</strong></td>
+                            </tr>
+                        }
+                        <tr class="row-total">
+                            <td class="total-label">TOTAL BY DAY</td>
+                            <td><strong>@Model.DailyBreakdown.Sum(x => (int)x.Value).ToString("N0")</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
     </div>
 
     <!-- Right Column -->
@@ -75,38 +71,30 @@ else
         </div>
         <p class="section-title">จำนวนสมาชิกแต่ละTIERทั้งหมดที่ร่วมกิจกรรม</p>
 
-        <!-- Right Table -->
-        <div class="table-container">
-            <table class="table table-bordered data-table">
-                <thead>
-                    <tr>
-                        <th colspan="2">17 OCT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="row-navy">
-                        <td class="total-label">NAVY</td>
-                        <td><strong>350</strong></td>
-                    </tr>
-                    <tr class="row-scarlet">
-                        <td class="total-label">SCARLET</td>
-                        <td><strong>30</strong></td>
-                    </tr>
-                    <tr class="row-crown">
-                        <td class="total-label">CROWN</td>
-                        <td><strong>0</strong></td>
-                    </tr>
-                    <tr class="row-vega">
-                        <td class="total-label">VEGA</td>
-                        <td><strong>0</strong></td>
-                    </tr>
-                    <tr class="row-total">
-                        <td class="total-label">TOTAL MEMBER BY DAY</td>
-                        <td><strong>380</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+            <!-- Right Table -->
+            <div class="table-container">
+                <table class="table table-bordered data-table">
+                    <thead>
+                        <tr>
+                            <!-- สามารถปรับแก้ให้เป็นวันที่ปัจจุบันได้หากต้องการ -->
+                            <th colspan="2">17 OCT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.TierBreakdown)
+                        {
+                            <tr class="row-@item.Tier.ToLower()">
+                                <td class="total-label">@item.Tier</td>
+                                <td><strong>@item.MemberCount.ToString("N0")</strong></td>
+                            </tr>
+                        }
+                        <tr class="row-total">
+                            <td class="total-label">TOTAL MEMBER BY DAY</td>
+                            <td><strong>@Model.TierBreakdown.Sum(x => (int)x.MemberCount).ToString("N0")</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
     </div>
 </div>
 }

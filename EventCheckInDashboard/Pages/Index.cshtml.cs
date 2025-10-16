@@ -154,7 +154,7 @@ namespace EventCheckInDashboard.Pages
                 IF @cols IS NULL BEGIN SET @cols = '' END;
                 SELECT @totalByTierCol = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' FROM [dbo].[MemberRewards] ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
                 IF @totalByTierCol IS NULL BEGIN SET @totalByTierCol = '0' END;
-                SELECT @colsForSelect = STUFF((SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) FROM MemberReward ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+                SELECT @colsForSelect = STUFF((SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) FROM [dbo].[MemberRewards] ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
                 
                 IF @colsForSelect IS NOT NULL
                 BEGIN
