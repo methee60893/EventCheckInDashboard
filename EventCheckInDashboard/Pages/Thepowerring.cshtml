@@ -21,11 +21,11 @@
                     </div>
                     <div class="info-item">
                         <span class="info-label">ACTUAL</span>
-                        <span class="info-value" id="actualValue">XXX สิทธิ์</span>
+                        <span class="info-value" id="actualValue">0 สิทธิ์</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">จำนวนสมาชิกที่แลก</span>
-                        <span class="info-value" id="memberValue">XXX คน</span>
+                        <span class="info-value" id="memberValue">0 คน</span>
                     </div>
                 </div>
             </div>
@@ -193,8 +193,10 @@
         </div>
     </div>
 </div>
-
+@section Scripts {
 <script>
+          document.addEventListener('DOMContentLoaded', function () {
+
     // ข้อมูลสำหรับ Stacked Bar Chart
     const stackedData = {
         labels: ['17-Oct', '18-Oct', '19-Oct', '20-Oct', '21-Oct', '22-Oct', '23-Oct'],
@@ -403,5 +405,8 @@
 
     // ตัวอย่างการใช้งาน
     updateDashboard(100, 100);
-     document.getElementByID("a_tpwr").addClass("active");
+   document.getElementById("a_tpwr").classList.add("active");
+ });
+
 </script>
+}

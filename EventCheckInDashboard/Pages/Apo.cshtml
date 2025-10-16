@@ -3,6 +3,12 @@
 @{
     ViewData["Title"] = "Dashboard D&S 2025 - 05 EXCLUSIVE CHILL & TALK WITH APO NATTAWIN";
 }
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+else
+{
 <div class="row">
     <!-- Left Column -->
     <div class="col-lg-6">
@@ -15,7 +21,7 @@
                 </div>
                 <div class="event-info">
                     <div class="event-title">5. EXCLUSIVE CHILL & TALK<br>WITH APO NATTAWIN</div>
-                    <div class="event-actual">ACTUAL <span id="actualValue">XXX</span> คน</div>
+                        <div class="event-actual">ACTUAL <span id="actualValue">@Model.ActualTotalMembers.ToString("N0")</span> คน</div>
                 </div>
             </div>
         </div>
@@ -103,271 +109,135 @@
         </div>
     </div>
 </div>
+}
+
+@section Scripts {
 <script>
-    // ข้อมูลสำหรับ Stacked Bar Chart
-    const stackedData = {
-        labels: ['17-Oct'],
-        datasets: [
-            {
-                label: 'แลก360กะรัต',
-                data: [300],
-                backgroundColor: 'rgba(180, 83, 9, 0.9)',
-                borderWidth: 0,
-                hoverBackgroundColor: 'rgba(180, 83, 9, 1)',
-            },
-            {
-                label: 'สมาชิกใหม่',
-                data: [50],
-                backgroundColor: 'rgba(220, 38, 38, 0.9)',
-                borderWidth: 0,
-                hoverBackgroundColor: 'rgba(220, 38, 38, 1)',
-            },
-            {
-                label: 'CARD X',
-                data: [30],
-                backgroundColor: 'rgba(99, 102, 241, 0.9)',
-                borderWidth: 0,
-                hoverBackgroundColor: 'rgba(99, 102, 241, 1)',
-            }
-        ]
-    };
-
-    // สร้าง Stacked Bar Chart
-    const stackedCtx = document.getElementById('stackedBarChart').getContext('2d');
-    const stackedChart = new Chart(stackedCtx, {
-        type: 'bar',
-        data: stackedData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 20,
-                        font: {
-                            size: 13,
-                            family: 'Inter',
-                            weight: 500
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    cornerRadius: 8,
-                    titleFont: {
-                        size: 14,
-                        family: 'Inter'
-                    },
-                    bodyFont: {
-                        size: 13,
-                        family: 'Inter'
-                    },
-                    callbacks: {
-                        afterBody: function(context) {
-                            let total = 0;
-                            context.forEach(item => {
-                                total += item.parsed.y;
-                            });
-                            return '\nรวมทั้งหมด: ' + total + ' คน';
-                        }
-                    }
-                },
-                datalabels: {
-                    color: '#fff',
-                    font: {
-                        weight: 'bold',
-                        size: 14
-                    },
-                    formatter: function(value, context) {
-                        return value;
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    stacked: true,
-                    ticks: {
-                        font: {
-                            size: 13,
-                            family: 'Inter',
-                            weight: 600
-                        }
-                    },
-                    grid: {
-                        display: false
-                    }
-                },
-                y: {
-                    stacked: true,
-                    beginAtZero: true,
-                    max: 1000,
-                    ticks: {
-                        stepSize: 200,
-                        font: {
-                            size: 12,
-                            family: 'Inter'
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
-                    }
-                }
-            },
-            animation: {
-                duration: 1500,
-                easing: 'easeInOutQuart'
-            }
-        }
-    });
-
-    // แสดงตัวเลขรวมด้านบนแท่ง
-    Chart.register({
-        id: 'topLabels',
-        afterDatasetsDraw: function(chart) {
-            const ctx = chart.ctx;
-            chart.data.datasets.forEach(function(dataset, i) {
-                const meta = chart.getDatasetMeta(i);
-                if (!meta.hidden) {
-                    meta.data.forEach(function(element, index) {
-                        if (i === chart.data.datasets.length - 1) {
-                            // แสดงผลรวมเฉพาะ dataset สุดท้าย
-                            ctx.fillStyle = '#1f2937';
-                            const fontSize = 16;
-                            const fontStyle = 'bold';
-                            const fontFamily = 'Inter';
-                            ctx.font = fontStyle + ' ' + fontSize + 'px ' + fontFamily;
-
-                            // คำนวณผลรวม
-                            let total = 0;
-                            chart.data.datasets.forEach(function(ds) {
-                                total += ds.data[index];
-                            });
-
-                            const dataString = total.toString();
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'bottom';
-
-                            const padding = 5;
-                            const position = element.tooltipPosition();
-                            ctx.fillText(dataString, position.x, position.y - padding);
-                        }
-                    });
-                }
-            });
-        }
-    });
-
-    // ข้อมูลสำหรับ 3D Pie Chart
-    const pieData = {
-        labels: ['NAVY', 'SCARLET', 'CROWN', 'VEGA'],
-        datasets: [{
-            data: [350, 30, 0, 0],
-            backgroundColor: [
-                'rgba(59, 130, 246, 0.95)',
-                'rgba(239, 68, 68, 0.95)',
-                'rgba(156, 163, 175, 0.5)',
-                'rgba(234, 179, 8, 0.5)'
-            ],
-            borderWidth: 6,
-            borderColor: '#fff',
-            hoverOffset: 20,
-            hoverBorderWidth: 8
-        }]
-    };
-
-    // สร้าง 3D Pie Chart
-    const pieCtx = document.getElementById('pieChart').getContext('2d');
-    const pieChart = new Chart(pieCtx, {
-        type: 'doughnut',
-        data: pieData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '50%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        padding: 20,
-                        font: {
-                            size: 13,
-                            family: 'Inter',
-                            weight: 500
+         document.addEventListener('DOMContentLoaded', function () {
+        const stackedDataJson = '@Html.Raw(Model.StackedBarChartJson)';
+            if (stackedDataJson) {
+                const stackedData = JSON.parse(stackedDataJson);
+                const stackedCtx = document.getElementById('stackedBarChart').getContext('2d');
+                const stackedChart = new Chart(stackedCtx, {
+                    type: 'bar',
+                    data: stackedData,
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 }}},
+                            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
+                                callbacks: {
+                                    afterBody: function(context) {
+                                        let total = 0;
+                                        context.forEach(item => { total += item.parsed.y; });
+                                        return '\nรวมทั้งหมด: ' + total + ' คน';
+                                    }
+                                }
+                            }
                         },
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            return data.labels.map((label, i) => {
-                                const value = data.datasets[0].data[i];
-                                return {
-                                    text: label + ' (' + value + ' คน)',
-                                    fillStyle: data.datasets[0].backgroundColor[i],
-                                    hidden: false,
-                                    index: i
-                                };
+                        scales: {
+                            x: { stacked: true, ticks: { font: { size: 13, family: 'Inter', weight: 600 }}, grid: { display: false }},
+                            y: { stacked: true, beginAtZero: true, max: 1000, ticks: { stepSize: 200, font: { size: 12, family: 'Inter' }}, grid: { color: 'rgba(0, 0, 0, 0.05)' }}
+                        },
+                        animation: { duration: 1500, easing: 'easeInOutQuart' }
+                    }
+                });
+                 // Plugin สำหรับแสดงยอดรวมบน Bar Chart
+                Chart.register({
+                    id: 'topLabels',
+                    afterDatasetsDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(chart.data.datasets.length - 1);
+                         if (!meta.hidden) {
+                            meta.data.forEach(function(element, index) {
+                                ctx.fillStyle = '#1f2937';
+                                const fontSize = 16;
+                                const fontStyle = 'bold';
+                                const fontFamily = 'Inter';
+                                ctx.font = Chart.helpers.toFontString(fontSize, fontStyle, fontFamily);
+                                let total = 0;
+                                chart.data.datasets.forEach(ds => { total += ds.data[index]; });
+                                const dataString = total.toString();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                const padding = 5;
+                                const position = element.tooltipPosition();
+                                ctx.fillText(dataString, position.x, position.y - padding);
                             });
                         }
                     }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    padding: 12,
-                    cornerRadius: 8,
-                    titleFont: {
-                        size: 14,
-                        family: 'Inter'
-                    },
-                    bodyFont: {
-                        size: 13,
-                        family: 'Inter'
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            let value = context.parsed;
-                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            let percentage = ((value / total) * 100).toFixed(0);
-                            return label + ': ' + value + ' คน (' + percentage + '%)';
-                        }
-                    }
-                }
-            },
-            animation: {
-                animateRotate: true,
-                animateScale: true,
-                duration: 2000,
-                easing: 'easeInOutQuart'
+                });
             }
-        }
-    });
 
-    // เพิ่ม 3D effect สำหรับ Pie Chart
-    const pieWrapper = document.querySelector('.pie-wrapper');
-    pieWrapper.addEventListener('mousemove', (e) => {
-        const rect = pieWrapper.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateY = (x - centerX) / 20;
-        const rotateX = -(y - centerY) / 20;
 
-        pieWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
-    });
+            // ================== 3D PIE CHART ==================
+            const pieDataJson = '@Html.Raw(Model.PieChartJson)';
+            if (pieDataJson) {
+                const pieApiData = JSON.parse(pieDataJson);
+                const tierColors = {
+                    'NAVY': 'rgba(59, 130, 246, 0.95)',
+                    'SCARLET': 'rgba(239, 68, 68, 0.95)',
+                    'CROWN': 'rgba(156, 163, 175, 0.5)',
+                    'VEGA': 'rgba(234, 179, 8, 0.5)'
+                };
+                const pieData = {
+                    labels: pieApiData.map(d => d.Tier),
+                    datasets: [{
+                        data: pieApiData.map(d => d.MemberCount),
+                        backgroundColor: pieApiData.map(d => tierColors[d.Tier.toUpperCase()] || '#6c757d'),
+                        borderWidth: 6, borderColor: '#fff', hoverOffset: 20, hoverBorderWidth: 8
+                    }]
+                };
 
-    pieWrapper.addEventListener('mouseleave', () => {
-        pieWrapper.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
-    });
+                const pieCtx = document.getElementById('pieChart').getContext('2d');
+                const pieChart = new Chart(pieCtx, {
+                    type: 'doughnut',
+                    data: pieData,
+                    options: {
+                         responsive: true, maintainAspectRatio: false, cutout: '50%',
+                        plugins: {
+                            legend: { position: 'right', labels: { padding: 20, font: { size: 13, family: 'Inter', weight: 500 }, usePointStyle: true, pointStyle: 'circle',
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    return data.labels.map((label, i) => {
+                                        const value = data.datasets[0].data[i];
+                                        return { text: label + ' (' + value + ' คน)', fillStyle: data.datasets[0].backgroundColor[i], hidden: false, index: i };
+                                    });
+                                }
+                            }},
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.parsed;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                                        return label + ': ' + value + ' คน (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        },
+                        animation: { animateRotate: true, animateScale: true, duration: 2000, easing: 'easeInOutQuart' }
+                    }
+                });
+            }
 
-    // ฟังก์ชันอัพเดทข้อมูล
-    function updateDashboard(actualValue) {
-        document.getElementById('actualValue').textContent = actualValue.toLocaleString();
-    }
-
-    // ตัวอย่างการใช้งาน
-    updateDashboard(380);
+            // 3D hover effect for pie chart
+            const pieWrapper = document.querySelector('.pie-wrapper');
+            if (pieWrapper) {
+                pieWrapper.addEventListener('mousemove', (e) => {
+                    const rect = pieWrapper.getBoundingClientRect();
+                    const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2; const centerY = rect.height / 2;
+                    const rotateY = (x - centerX) / 20; const rotateX = -(y - centerY) / 20;
+                    pieWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+                });
+                pieWrapper.addEventListener('mouseleave', () => {
+                    pieWrapper.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
+                });
+            }
+    document.getElementById("a_exapo").classList.add("active");
+            });
 </script>
+}
