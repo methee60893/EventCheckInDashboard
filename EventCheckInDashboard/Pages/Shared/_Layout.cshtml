@@ -1,0 +1,54 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - EventCheckInDashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/EventCheckInDashboard.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <div class="navbar-container">
+        <nav class="navbar navbar-expand-lg custom-navbar">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">DASHBOARD D&S 2025</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a id="a_main" class="nav-link" href="/Index">Overview</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_stpw" class="nav-link" href="/Spinwheel">SPIN THE POWER WHEEL</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_tpwr" class="nav-link" href="/Thepowerring">THE POWER RING</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_tpwps" class="nav-link" href="/Thepowerpusher">THE POWER PUSHER</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_drtpw" class="nav-link" href="/Dropthepower">DROP THE POWER</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_exapo" class="nav-link" href="/Apo">EXCLUSIVE CHILL & TALK WITH APO</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div class="dashboard-container">
+       
+            @RenderBody()
+
+    </div>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

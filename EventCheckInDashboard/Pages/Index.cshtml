@@ -1,0 +1,341 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard D&S 2025 - MAIN";
+}
+    <p class="subtitle">จำนวนสมาชิกที่ร่วมกิจกรรมทั้ง 4 กิจกรรม</p>
+
+    <div class="row">
+        <!-- Left Section -->
+        <div class="col-lg-6">
+            <!-- Info Box -->
+            <div class="info-box">
+                <div class="info-row">
+                    <span class="info-label">TARGET</span>
+                    <span class="info-value">5,600 สิทธิ์</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ACTUAL</span>
+                    <span class="info-value" id="actualValue">XXX สิทธิ์</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">จำนวนสมาชิกที่แลก</span>
+                    <span class="info-value" id="actualMember">XXX คน</span>
+                </div>
+            </div>
+
+            <!-- Bar Chart -->
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section -->
+        <div class="col-lg-6">
+            <!-- 3D Pie Chart -->
+            <div class="pie-container">
+                <div class="pie-wrapper">
+                    <div class="pie-chart-3d">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <p class="section-title">
+                จำนวนสมาชิกแต่ละ TIER ทั้งหมดที่ร่วมกิจกรรม
+            </p>
+
+            <!-- Table -->
+            <div class="table-container">
+                <table class="table table-bordered tier-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>17 OCT</th>
+                            <th>18 OCT</th>
+                            <th>19 OCT</th>
+                            <th>20 OCT</th>
+                            <th>21 OCT</th>
+                            <th>22 OCT</th>
+                            <th>23 OCT</th>
+                            <th>TOTAL<br>BY TIER</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tierTableBody">
+                        <tr class="tier-navy">
+                            <td><strong>NAVY</strong></td>
+                            <td>200</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">200</td>
+                        </tr>
+                        <tr class="tier-scarlet">
+                            <td><strong>SCARLET</strong></td>
+                            <td>80</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">80</td>
+                        </tr>
+                        <tr class="tier-crown">
+                            <td><strong>CROWN</strong></td>
+                            <td>80</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">80</td>
+                        </tr>
+                        <tr class="tier-vega">
+                            <td><strong>VEGA</strong></td>
+                            <td>40</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">40</td>
+                        </tr>
+                        <tr class="tier-total">
+                            <td><strong>TOTAL<br>MEMBER<br>BY DAY</strong></td>
+                            <td>400</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="total-value">400</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // ข้อมูลสำหรับ Bar Chart
+    const barData = {
+        labels: ['17-Oct', '18-Oct', '19-Oct', '20-Oct', '21-Oct', '22-Oct', '23-Oct'],
+        datasets: [
+            {
+                label: 'TARGET',
+                data: [800, 800, 800, 800, 800, 800, 800],
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderRadius: 8,
+                borderWidth: 0,
+                hoverBackgroundColor: 'rgba(102, 126, 234, 1)',
+            },
+            {
+                label: 'ACTUAL',
+                data: [400, 0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(255, 140, 66, 0.8)',
+                borderRadius: 8,
+                borderWidth: 0,
+                hoverBackgroundColor: 'rgba(255, 140, 66, 1)',
+            }
+        ]
+    };
+
+    // สร้าง Bar Chart
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    const barChart = new Chart(barCtx, {
+        type: 'bar',
+        data: barData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 30,
+                    bottom: 0,
+                    left: 10,
+                    right: 10
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            family: 'Inter',
+                            weight: 500
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1000,
+                    position: 'left',
+                    ticks: {
+                        stepSize: 200,
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        },
+                        padding: 10
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)',
+                        drawBorder: false
+                    },
+                    border: {
+                        display: false
+                    }
+                },
+                x: {
+                    position: 'bottom',
+                    ticks: {
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        },
+                        padding: 5
+                    },
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    border: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+    // ข้อมูลสำหรับ 3D Pie Chart
+    const pieData = {
+        labels: ['NAVY', 'SCARLET', 'CROWN', 'VEGA'],
+        datasets: [{
+            data: [200, 80, 80, 40],
+            backgroundColor: [
+                'rgba(102, 126, 234, 0.9)',
+                'rgba(255, 140, 66, 0.9)',
+                'rgba(184, 184, 184, 0.9)',
+                'rgba(255, 193, 7, 0.9)'
+            ],
+            borderWidth: 4,
+            borderColor: '#fff',
+            hoverOffset: 15,
+            hoverBorderWidth: 5
+        }]
+    };
+
+    // สร้าง 3D Pie Chart
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: pieData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '45%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            family: 'Inter',
+                            weight: 500
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            let percentage = ((value / total) * 100).toFixed(0);
+                            return label + ': ' + value + ' คน (' + percentage + '%)';
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 2000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+    // เพิ่ม 3D shadow effect
+    const pieWrapper = document.querySelector('.pie-wrapper');
+    pieWrapper.addEventListener('mousemove', (e) => {
+        const rect = pieWrapper.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateY = (x - centerX) / 20;
+        const rotateX = -(y - centerY) / 20;
+
+        pieWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+    });
+
+    pieWrapper.addEventListener('mouseleave', () => {
+        pieWrapper.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
+    });
+
+    // ฟังก์ชันสำหรับอัพเดทข้อมูล
+    function updateDashboard(actualValue, actualMember) {
+        document.getElementById('actualValue').textContent = actualValue.toLocaleString() + ' สิทธิ์';
+        document.getElementById('actualMember').textContent = actualMember.toLocaleString() + ' คน';
+    }
+
+    // ตัวอย่างการใช้งาน - สามารถเรียกใช้ฟังก์ชันนี้เพื่ออัพเดทข้อมูล
+    updateDashboard(400, 200);
+    document.getElementByID("a_main").addClass("active");
+</script>

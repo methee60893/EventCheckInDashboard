@@ -1,0 +1,406 @@
+﻿@page
+@model EventCheckInDashboard.Pages.SpinwheelModel
+@{
+    ViewData["Title"] = "Dashboard D&S 2025 - 01 SPIN THE POWER WHEEL";
+}
+<div class="row">
+        <!-- Left Column -->
+        <div class="col-lg-6">
+            <!-- Spin Section -->
+            <div class="spin-section">
+                <div class="spin-title">1. SPIN THE POWER WHEEL</div>
+                <div class="spin-content">
+                    <div class="wheel-image">
+                        <div class="wheel-inner">POWER<br>WHEEL</div>
+                    </div>
+                    <div class="spin-info">
+                        <div class="info-item">
+                            <span class="info-label">TARGET</span>
+                            <span class="info-value">1,400 สิทธิ์</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">ACTUAL</span>
+                            <span class="info-value" id="actualValue">XXX สิทธิ์</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">จำนวนสมาชิกที่แลก</span>
+                            <span class="info-value" id="memberValue">XXX คน</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stacked Bar Chart -->
+            <div class="chart-container2">
+                <div class="stacked-chart-wrapper2">
+                    <canvas id="stackedBarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Left Table -->
+            <div class="table-container">
+                <table class="table table-bordered data-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>17 OCT</th>
+                            <th>18 OCT</th>
+                            <th>19 OCT</th>
+                            <th>20 OCT</th>
+                            <th>21 OCT</th>
+                            <th>22 OCT</th>
+                            <th>23 OCT</th>
+                            <th>TOTAL BY<br>SEGMENT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="row-video">
+                            <td><strong>แลก360<br>กะรัต</strong></td>
+                            <td>70</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">70</td>
+                        </tr>
+                        <tr class="row-member">
+                            <td><strong>สมาชิก<br>ใหม่</strong></td>
+                            <td>20</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">20</td>
+                        </tr>
+                        <tr class="row-card">
+                            <td><strong>CARD X</strong></td>
+                            <td>10</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">10</td>
+                        </tr>
+                        <tr class="row-total">
+                            <td><strong>TOTAL<br>BY DAY</strong></td>
+                            <td>100</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="total-value">100</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-6">
+            <!-- 3D Pie Chart -->
+            <div class="pie-container-2">
+                <div class="pie-wrapper">
+                    <div class="pie-chart-3d">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <p class="section-title">จำนวนสมาชิกแต่ละTIERทั้งหมดที่ร่วมกิจกรรม</p>
+
+            <!-- Right Table -->
+            <div class="table-container">
+                <table class="table table-bordered data-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>17 OCT</th>
+                            <th>18 OCT</th>
+                            <th>19 OCT</th>
+                            <th>20 OCT</th>
+                            <th>21 OCT</th>
+                            <th>22 OCT</th>
+                            <th>23 OCT</th>
+                            <th>TOTAL<br>BY TIER</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="row-navy">
+                            <td><strong>NAVY</strong></td>
+                            <td>50</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">50</td>
+                        </tr>
+                        <tr class="row-scarlet">
+                            <td><strong>SCARLET</strong></td>
+                            <td>20</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">20</td>
+                        </tr>
+                        <tr class="row-crown">
+                            <td><strong>CROWN</strong></td>
+                            <td>20</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">20</td>
+                        </tr>
+                        <tr class="row-vega">
+                            <td><strong>VEGA</strong></td>
+                            <td>10</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="green-total">10</td>
+                        </tr>
+                        <tr class="row-total">
+                            <td><strong>TOTAL<br>MEMBER<br>BY DAY</strong></td>
+                            <td>100</td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td class="total-value">100</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+    // ข้อมูลสำหรับ Stacked Bar Chart
+    const stackedData = {
+        labels: ['17-Oct', '18-Oct', '19-Oct', '20-Oct', '21-Oct', '22-Oct', '23-Oct'],
+        datasets: [
+            {
+                label: 'แลก360กะรัต',
+                data: [70, 0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(234, 179, 8, 0.85)',
+                borderWidth: 0,
+                borderRadius: 6,
+                hoverBackgroundColor: 'rgba(234, 179, 8, 1)',
+            },
+            {
+                label: 'สมาชิกใหม่',
+                data: [20, 0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                borderWidth: 0,
+                borderRadius: 6,
+                hoverBackgroundColor: 'rgba(59, 130, 246, 1)',
+            },
+            {
+                label: 'CARD X',
+                data: [10, 0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(34, 197, 94, 0.85)',
+                borderWidth: 0,
+                borderRadius: 6,
+                hoverBackgroundColor: 'rgba(34, 197, 94, 1)',
+            }
+        ]
+    };
+
+    // สร้าง Stacked Bar Chart
+    const stackedCtx = document.getElementById('stackedBarChart').getContext('2d');
+    const stackedChart = new Chart(stackedCtx, {
+        type: 'bar',
+        data: stackedData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            family: 'Inter',
+                            weight: 500
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    callbacks: {
+                        afterBody: function(context) {
+                            let total = 0;
+                            context.forEach(item => {
+                                total += item.parsed.y;
+                            });
+                            return 'รวม: ' + total;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    ticks: {
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        }
+                    },
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    max: 200,
+                    ticks: {
+                        stepSize: 50,
+                        font: {
+                            size: 12,
+                            family: 'Inter'
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    }
+                }
+            },
+            animation: {
+                duration: 1500,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+    // ข้อมูลสำหรับ 3D Pie Chart
+    const pieData = {
+        labels: ['NAVY 50%', 'SCARLET 20%', 'CROWN 20%', 'VEGA 10%'],
+        datasets: [{
+            data: [50, 20, 20, 10],
+            backgroundColor: [
+                'rgba(59, 130, 246, 0.9)',
+                'rgba(239, 68, 68, 0.9)',
+                'rgba(156, 163, 175, 0.9)',
+                'rgba(234, 179, 8, 0.9)'
+            ],
+            borderWidth: 4,
+            borderColor: '#fff',
+            hoverOffset: 15,
+            hoverBorderWidth: 5
+        }]
+    };
+
+    // สร้าง 3D Pie Chart
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    const pieChart = new Chart(pieCtx, {
+        type: 'doughnut',
+        data: pieData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '45%',
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            family: 'Inter',
+                            weight: 500
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    titleFont: {
+                        size: 14,
+                        family: 'Inter'
+                    },
+                    bodyFont: {
+                        size: 13,
+                        family: 'Inter'
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed;
+                            return label + ': ' + value + ' คน';
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 2000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+
+    // เพิ่ม 3D effect
+    const pieWrapper = document.querySelector('.pie-wrapper');
+    pieWrapper.addEventListener('mousemove', (e) => {
+        const rect = pieWrapper.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateY = (x - centerX) / 20;
+        const rotateX = -(y - centerY) / 20;
+
+        pieWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+    });
+
+    pieWrapper.addEventListener('mouseleave', () => {
+        pieWrapper.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
+    });
+
+    // ฟังก์ชันอัพเดทข้อมูล
+    function updateDashboard(actualValue, memberCount) {
+        document.getElementById('actualValue').textContent = actualValue.toLocaleString() + ' สิทธิ์';
+        document.getElementById('memberValue').textContent = memberCount.toLocaleString() + ' คน';
+    }
+
+    // ตัวอย่างการใช้งาน
+    updateDashboard(100, 100);
+</script>
