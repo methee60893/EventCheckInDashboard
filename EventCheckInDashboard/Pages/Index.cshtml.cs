@@ -148,34 +148,70 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadPivotTableDataAsync(string connectionString)
         {
-            string dynamicPivotSql = @"
-                DECLARE @cols AS NVARCHAR(MAX), @query AS NVARCHAR(MAX), @totalByTierCol AS NVARCHAR(MAX), @colsForSelect AS NVARCHAR(MAX);
-                SELECT @cols = STUFF((SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) FROM [dbo].[MemberRewards] ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
-                IF @cols IS NULL BEGIN SET @cols = '' END;
-                SELECT @totalByTierCol = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' FROM [dbo].[MemberRewards] ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
-                IF @totalByTierCol IS NULL BEGIN SET @totalByTierCol = '0' END;
-                SELECT @colsForSelect = STUFF((SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) FROM [dbo].[MemberRewards] ORDER BY 1 FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
-                
-                IF @colsForSelect IS NOT NULL
-                BEGIN
-                    SET @query = '
-                    WITH PivotedData AS (
-                        SELECT Tier, ' + @cols + '
-                        FROM (SELECT Tier, CAST(CreatedAt AS DATE) AS RegDate FROM [dbo].[MemberRewards]) AS SourceTable
-                        PIVOT (COUNT(RegDate) FOR RegDate IN (' + @cols + ')) AS PivotTable
-                    )
-                    SELECT
-                        ISNULL(Tier, ''TOTAL MEMBER BY DAY'') AS Tier,
-                        ' + @colsForSelect + ',
-                        ' + @totalByTierCol + ' AS [TOTAL BY TIER]
-                    FROM PivotedData
-                    GROUP BY ROLLUP(Tier);';
-                    EXEC sp_executesql @query;
-                END
-                ELSE
-                BEGIN
-                    SELECT 'NO DATA' AS Tier, 0 AS [TOTAL BY TIER];
-                END";
+            string dynamicPivotSql = @"DECLARE @cols AS NVARCHAR(MAX), 
+        @query AS NVARCHAR(MAX), 
+        @totalByTierCol AS NVARCHAR(MAX), 
+        @colsForSelect AS NVARCHAR(MAX);
+
+-- สร้าง columns สำหรับ PIVOT
+SELECT @cols = STUFF((
+    SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) 
+    FROM [dbo].[MemberRewards] 
+    ORDER BY 1 
+    FOR XML PATH(''), TYPE
+).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+IF @cols IS NULL BEGIN SET @cols = '' END;
+
+-- สร้าง formula สำหรับ TOTAL BY TIER
+SELECT @totalByTierCol = STUFF((
+    SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' 
+    FROM [dbo].[MemberRewards] 
+    ORDER BY 1 
+    FOR XML PATH(''), TYPE
+).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+
+IF @totalByTierCol IS NULL BEGIN SET @totalByTierCol = '0' END;
+
+-- สร้าง columns สำหรับ SELECT พร้อม SUM() **แก้ตรงนี้**
+SELECT @colsForSelect = STUFF((
+    SELECT DISTINCT ', SUM(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ') AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
+    FROM [dbo].[MemberRewards] 
+    ORDER BY 1 
+    FOR XML PATH(''), TYPE
+).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+IF @colsForSelect IS NOT NULL
+BEGIN
+    SET @query = '
+		WITH PivotedData AS (
+			SELECT Tier, ' + @cols + '
+			FROM (
+				SELECT Tier, CAST(CreatedAt AS DATE) AS RegDate 
+				FROM [dbo].[MemberRewards]
+			) AS SourceTable
+			PIVOT (COUNT(RegDate) FOR RegDate IN (' + @cols + ')) AS PivotTable
+		)
+		SELECT 
+			Tier,
+			' + @colsForSelect + ',
+			' + @totalByTierCol + ' AS [TOTAL BY TIER]
+		FROM PivotedData
+		UNION ALL
+		SELECT 
+			''TOTAL MEMBER BY DAY'' AS Tier,
+			' + @colsForSelect + ',
+			SUM(' + @totalByTierCol + ') AS [TOTAL BY TIER]
+		FROM PivotedData;';
+    
+    EXEC sp_executesql @query;
+END
+ELSE
+BEGIN
+    SELECT 'NO DATA' AS Tier, 0 AS [TOTAL BY TIER];
+END
+";
+
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
