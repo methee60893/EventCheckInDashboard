@@ -52,7 +52,7 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadSummaryDataAsync(string connectionString, int stationId)
         {
-            string sql = "SELECT COUNT(MemberRewardID) AS TotalRights, COUNT(DISTINCT MemberID) AS TotalMembers FROM MemberRewards WHERE StationId = @StationId;";
+            string sql = "SELECT  CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights\r\nFROM [dbo].[RewardHistory]\r\nWHERE [StationId]=@StationId GROUP BY CAST(UsedAt AS DATE)\r\nORDER BY ActivityDate;\r\n;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
@@ -127,33 +127,62 @@ namespace EventCheckInDashboard.Pages
         private async Task LoadSegmentPivotTableAsync(string connectionString, int stationId)
         {
             string sql = @"
-                DECLARE @cols AS NVARCHAR(MAX), @query AS NVARCHAR(MAX), @totalCol AS NVARCHAR(MAX), @colsForSelect AS NVARCHAR(MAX);
-                SELECT @cols = STUFF((SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
-                IF @cols IS NULL RETURN;
-                SELECT @totalCol = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'');
-                SELECT @colsForSelect = STUFF((SELECT DISTINCT ', ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+                DECLARE @cols AS NVARCHAR(MAX), 
+                          @query AS NVARCHAR(MAX), 
+                          @totalCol AS NVARCHAR(MAX), 
+                          @colsForSelect AS NVARCHAR(MAX);
 
-                SET @query = N'
-                WITH SourceData AS (
-                    SELECT CAST(CreatedAt AS DATE) AS ActivityDate,
-                           CASE 
-                                WHEN RewardTypeID = 1 THEN N''แลก360กะรัต'' 
-                                WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่'' 
-                                WHEN RewardTypeID = 3 THEN N''CARD X'' 
-                                ELSE N''อื่นๆ'' 
-                           END AS Segment
-                    FROM MemberRewards WHERE StationId = ' + CAST(@StationId AS VARCHAR) + '
-                ),
-                PivotedData AS (
-                    SELECT Segment, ' + @cols + '
-                    FROM SourceData
-                    PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
-                )
-                SELECT ISNULL(Segment, N''TOTAL BY DAY'') AS Segment, ' + @colsForSelect + ', ' + @totalCol + ' AS [TOTAL BY SEGMENT]
-                FROM PivotedData
-                GROUP BY ROLLUP(Segment) ORDER BY CASE WHEN Segment = N''TOTAL BY DAY'' THEN 1 ELSE 0 END, Segment DESC';
 
-                EXEC sp_executesql @query;";
+                            SELECT @cols = STUFF((
+                                SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) 
+                                FROM MemberRewards 
+                                WHERE StationId = @StationId 
+                                FOR XML PATH(''), TYPE
+                            ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                            IF @cols IS NULL RETURN;
+
+                            SELECT @totalCol = STUFF((
+                                SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' 
+                                FROM MemberRewards 
+                                WHERE StationId = @StationId 
+                                FOR XML PATH(''), TYPE
+                            ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+
+                            -- **เปลี่ยนจาก ISNULL เป็น SUM(ISNULL(...))**
+                            SELECT @colsForSelect = STUFF((
+                                SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
+                                FROM MemberRewards 
+                                WHERE StationId = @StationId 
+                                FOR XML PATH(''), TYPE
+                            ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                            SET @query = N'
+                            WITH SourceData AS (
+                                SELECT CAST(CreatedAt AS DATE) AS ActivityDate,
+                                       CASE 
+                                            WHEN RewardTypeID = 1 THEN N''แลก360กะรัต'' 
+                                            WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่'' 
+                                            WHEN RewardTypeID = 3 THEN N''CARD X'' 
+                                            ELSE N''อื่นๆ'' 
+                                       END AS Segment
+                                FROM MemberRewards 
+                                WHERE StationId = ' + CAST(@StationId AS VARCHAR) + '
+                            ),
+                            PivotedData AS (
+                                SELECT Segment, ' + @cols + '
+                                FROM SourceData
+                                PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
+                            )
+                            SELECT 
+                                ISNULL(Segment, N''TOTAL BY DAY'') AS Segment, 
+                                ' + @colsForSelect + ', 
+                                SUM(' + @totalCol + ') AS [TOTAL BY SEGMENT]
+                            FROM PivotedData
+                            GROUP BY ROLLUP(Segment) 
+                            ORDER BY CASE WHEN Segment = N''TOTAL BY DAY'' THEN 1 ELSE 0 END, Segment DESC';
+
+                            EXEC sp_executesql @query;";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
@@ -171,24 +200,50 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadTierPivotTableAsync(string connectionString, int stationId)
         {
-            string sql = @"
-                DECLARE @cols AS NVARCHAR(MAX), @query AS NVARCHAR(MAX), @totalCol AS NVARCHAR(MAX), @colsForSelect AS NVARCHAR(MAX);
-                SELECT @cols = STUFF((SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
-                IF @cols IS NULL RETURN;
-                SELECT @totalCol = STUFF((SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,2,'');
-                SELECT @colsForSelect = STUFF((SELECT DISTINCT ', ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) FROM MemberRewards WHERE StationId = @StationId FOR XML PATH(''), TYPE).value('.', 'NVARCHAR(MAX)'),1,1,'');
+            string sql = @"DECLARE @cols AS NVARCHAR(MAX), @query AS NVARCHAR(MAX), @totalCol AS NVARCHAR(MAX), @colsForSelect AS NVARCHAR(MAX);
 
-                SET @query = N'
-                WITH PivotedData AS (
-                    SELECT Tier, ' + @cols + '
-                    FROM (SELECT Tier, CAST(CreatedAt AS DATE) AS ActivityDate FROM MemberRewards WHERE StationId = ' + CAST(@StationId AS VARCHAR) + ') AS SourceTable
-                    PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
-                )
-                SELECT ISNULL(Tier, N''TOTAL MEMBER BY DAY'') AS Tier, ' + @colsForSelect + ', ' + @totalCol + ' AS [TOTAL BY TIER]
-                FROM PivotedData
-                GROUP BY ROLLUP(Tier);';
-                
-                EXEC sp_executesql @query;";
+                        SELECT @cols = STUFF((
+                            SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) 
+                            FROM MemberRewards 
+                            WHERE StationId = @StationId 
+                            FOR XML PATH(''), TYPE
+                        ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                        IF @cols IS NULL RETURN;
+
+                        SELECT @totalCol = STUFF((
+                            SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' 
+                            FROM MemberRewards 
+                            WHERE StationId = @StationId 
+                            FOR XML PATH(''), TYPE
+                        ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+
+                        -- **แก้ไขตรงนี้: เพิ่ม SUM() ครอบ ISNULL**
+                        SELECT @colsForSelect = STUFF((
+                            SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
+                            FROM MemberRewards 
+                            WHERE StationId = @StationId 
+                            FOR XML PATH(''), TYPE
+                        ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                        SET @query = N'
+                        WITH PivotedData AS (
+                            SELECT Tier, ' + @cols + '
+                            FROM (
+                                SELECT Tier, CAST(CreatedAt AS DATE) AS ActivityDate 
+                                FROM MemberRewards 
+                                WHERE StationId = ' + CAST(@StationId AS VARCHAR) + '
+                            ) AS SourceTable
+                            PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
+                        )
+                        SELECT 
+                            ISNULL(Tier, N''TOTAL MEMBER BY DAY'') AS Tier, 
+                            ' + @colsForSelect + ', 
+                            SUM(' + @totalCol + ') AS [TOTAL BY TIER]
+                        FROM PivotedData
+                        GROUP BY ROLLUP(Tier);';
+
+                        EXEC sp_executesql @query;";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();

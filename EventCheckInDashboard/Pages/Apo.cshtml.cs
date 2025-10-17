@@ -61,7 +61,7 @@ namespace EventCheckInDashboard.Pages
                 -- 3. ข้อมูลสำหรับ Stacked Bar Chart และตารางด้านซ้าย (แยกตามประเภทการแลก)
                 SELECT
                     CAST(CreatedAt AS DATE) AS ActivityDate,
-                    SUM(CASE WHEN RewardTypeID = 1 THEN 1 ELSE 0 END) AS Karat360,
+                    CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT) AS Karat360,
                     SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers, 
                     SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
                 FROM [dbo].[MemberRewards]

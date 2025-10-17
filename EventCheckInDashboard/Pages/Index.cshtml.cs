@@ -50,7 +50,7 @@ namespace EventCheckInDashboard.Pages
         // --- เมธอดสำหรับดึงข้อมูลสรุป (Info Box) ---
         private async Task LoadSummaryDataAsync(string connectionString)
         {
-            string sql = "SELECT COUNT(DISTINCT MemberID) AS TotalRights, COUNT(DISTINCT MemberID) AS TotalMembers FROM [dbo].[MemberRewards];";
+            string sql = "SELECT  CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS TotalRights\r\nFROM [dbo].[RewardHistory]\r\nGROUP BY CAST(UsedAt AS DATE)\r\nORDER BY ActivityDate;\r\n";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
@@ -95,10 +95,11 @@ namespace EventCheckInDashboard.Pages
         {
             var dailyCounts = new Dictionary<string, int>();
             string sql = @"
-                SELECT CAST(CreatedAt AS DATE) as ActivityDate, COUNT(DISTINCT MemberID) as MemberCount
-                FROM [dbo].[MemberRewards]
-                GROUP BY CAST(CreatedAt AS DATE)
-                ORDER BY ActivityDate;";
+                SELECT  CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS RightsCount
+                FROM [dbo].[RewardHistory]
+                GROUP BY CAST(UsedAt AS DATE)
+                ORDER BY ActivityDate;
+                ";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
@@ -110,7 +111,7 @@ namespace EventCheckInDashboard.Pages
                 if (reader["ActivityDate"] != DBNull.Value)
                 {
                     string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM");
-                    dailyCounts[date] = (int)reader["MemberCount"];
+                    dailyCounts[date] = (int)reader["RightsCount"];
                 }
             }
 
@@ -149,68 +150,80 @@ namespace EventCheckInDashboard.Pages
         private async Task LoadPivotTableDataAsync(string connectionString)
         {
             string dynamicPivotSql = @"DECLARE @cols AS NVARCHAR(MAX), 
-        @query AS NVARCHAR(MAX), 
-        @totalByTierCol AS NVARCHAR(MAX), 
-        @colsForSelect AS NVARCHAR(MAX);
+                                    @query AS NVARCHAR(MAX), 
+                                    @totalByTierCol AS NVARCHAR(MAX), 
+                                    @colsForSelect AS NVARCHAR(MAX);
 
--- สร้าง columns สำหรับ PIVOT
-SELECT @cols = STUFF((
-    SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) 
-    FROM [dbo].[MemberRewards] 
-    ORDER BY 1 
-    FOR XML PATH(''), TYPE
-).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+                                    -- สร้าง columns สำหรับ PIVOT
+                                    SELECT @cols = STUFF((
+                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) 
+                                        FROM [dbo].[MemberRewards] 
+                                        ORDER BY 1 
+                                        FOR XML PATH(''), TYPE
+                                    ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
-IF @cols IS NULL BEGIN SET @cols = '' END;
+                                    IF @cols IS NULL BEGIN SET @cols = '' END;
 
--- สร้าง formula สำหรับ TOTAL BY TIER
-SELECT @totalByTierCol = STUFF((
-    SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' 
-    FROM [dbo].[MemberRewards] 
-    ORDER BY 1 
-    FOR XML PATH(''), TYPE
-).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+                                    -- สร้าง formula สำหรับ TOTAL BY TIER
+                                    SELECT @totalByTierCol = STUFF((
+                                        SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' 
+                                        FROM [dbo].[MemberRewards] 
+                                        ORDER BY 1 
+                                        FOR XML PATH(''), TYPE
+                                    ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
 
-IF @totalByTierCol IS NULL BEGIN SET @totalByTierCol = '0' END;
+                                    IF @totalByTierCol IS NULL BEGIN SET @totalByTierCol = '0' END;
 
--- สร้าง columns สำหรับ SELECT พร้อม SUM() **แก้ตรงนี้**
-SELECT @colsForSelect = STUFF((
-    SELECT DISTINCT ', SUM(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ') AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
-    FROM [dbo].[MemberRewards] 
-    ORDER BY 1 
-    FOR XML PATH(''), TYPE
-).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+                                    -- สร้าง columns สำหรับ SELECT (ไม่ใช้ SUM ในส่วนแรก)
+                                    SELECT @colsForSelect = STUFF((
+                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ' AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
+                                        FROM [dbo].[MemberRewards] 
+                                        ORDER BY 1 
+                                        FOR XML PATH(''), TYPE
+                                    ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
-IF @colsForSelect IS NOT NULL
-BEGIN
-    SET @query = '
-		WITH PivotedData AS (
-			SELECT Tier, ' + @cols + '
-			FROM (
-				SELECT Tier, CAST(CreatedAt AS DATE) AS RegDate 
-				FROM [dbo].[MemberRewards]
-			) AS SourceTable
-			PIVOT (COUNT(RegDate) FOR RegDate IN (' + @cols + ')) AS PivotTable
-		)
-		SELECT 
-			Tier,
-			' + @colsForSelect + ',
-			' + @totalByTierCol + ' AS [TOTAL BY TIER]
-		FROM PivotedData
-		UNION ALL
-		SELECT 
-			''TOTAL MEMBER BY DAY'' AS Tier,
-			' + @colsForSelect + ',
-			SUM(' + @totalByTierCol + ') AS [TOTAL BY TIER]
-		FROM PivotedData;';
+                                    -- สร้าง columns สำหรับ SUM (ใช้ในส่วน TOTAL)
+                                    DECLARE @colsForSum AS NVARCHAR(MAX);
+                                    SELECT @colsForSum = STUFF((
+                                        SELECT DISTINCT ', SUM(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ') AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
+                                        FROM [dbo].[MemberRewards] 
+                                        ORDER BY 1 
+                                        FOR XML PATH(''), TYPE
+                                    ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                                    IF @colsForSelect IS NOT NULL
+                                    BEGIN
+                                        SET @query = '
+                                        WITH PivotedData AS (
+                                            SELECT Tier, ' + @cols + '
+                                            FROM (
+                                                SELECT Tier, CAST(CreatedAt AS DATE) AS RegDate 
+                                                FROM [dbo].[MemberRewards]
+                                            ) AS SourceTable
+                                            PIVOT (COUNT(RegDate) FOR RegDate IN (' + @cols + ')) AS PivotTable
+                                        )
+                                        SELECT 
+                                            Tier,
+                                            ' + @colsForSelect + ',
+                                            ' + @totalByTierCol + ' AS [TOTAL BY TIER]
+                                        FROM PivotedData
     
-    EXEC sp_executesql @query;
-END
-ELSE
-BEGIN
-    SELECT 'NO DATA' AS Tier, 0 AS [TOTAL BY TIER];
-END
-";
+                                        UNION ALL
+    
+                                        SELECT 
+                                            ''TOTAL MEMBER BY DAY'' AS Tier,
+                                            ' + @colsForSum + ',
+                                            SUM(' + @totalByTierCol + ') AS [TOTAL BY TIER]
+                                        FROM PivotedData;';
+    
+                                        EXEC sp_executesql @query;
+                                    END
+                                    ELSE
+                                    BEGIN
+                                        SELECT 'NO DATA' AS Tier, 0 AS [TOTAL BY TIER];
+                                    END
+
+                                    ";
 
 
             await using var connection = new SqlConnection(connectionString);
