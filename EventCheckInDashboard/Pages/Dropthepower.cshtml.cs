@@ -135,8 +135,8 @@ namespace EventCheckInDashboard.Pages
 
 
                             SELECT @cols = STUFF((
-                                SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) 
-                                FROM MemberRewards 
+                                SELECT DISTINCT ',' + QUOTENAME(CAST(UsedAt AS DATE)) 
+                                FROM RewardHistory 
                                 WHERE StationId = @StationId 
                                 FOR XML PATH(''), TYPE
                             ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
@@ -144,30 +144,30 @@ namespace EventCheckInDashboard.Pages
                             IF @cols IS NULL RETURN;
 
                             SELECT @totalCol = STUFF((
-                                SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' 
-                                FROM MemberRewards 
+                                SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)' 
+                                FROM RewardHistory 
                                 WHERE StationId = @StationId 
                                 FOR XML PATH(''), TYPE
                             ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
 
                             -- **เปลี่ยนจาก ISNULL เป็น SUM(ISNULL(...))**
                             SELECT @colsForSelect = STUFF((
-                                SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
-                                FROM MemberRewards 
+                                SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(UsedAt, 'dd MMM')) 
+                                FROM RewardHistory 
                                 WHERE StationId = @StationId 
                                 FOR XML PATH(''), TYPE
                             ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
                             SET @query = N'
                             WITH SourceData AS (
-                                SELECT CAST(CreatedAt AS DATE) AS ActivityDate,
+                                SELECT CAST(UsedAt AS DATE) AS ActivityDate,
                                        CASE 
                                             WHEN RewardTypeID = 4 THEN N''ใบเสร็จ 8,000'' 
                                             WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่'' 
                                             WHEN RewardTypeID = 3 THEN N''CARD X'' 
                                             ELSE N''อื่นๆ'' 
                                        END AS Segment
-                                FROM MemberRewards 
+                                FROM RewardHistory 
                                 WHERE StationId = ' + CAST(@StationId AS VARCHAR) + '
                             ),
                             PivotedData AS (
@@ -234,9 +234,12 @@ namespace EventCheckInDashboard.Pages
                 WITH PivotedData AS (
                     SELECT Tier, ' + @cols + '
                     FROM (
-                        SELECT Tier, CAST(CreatedAt AS DATE) AS ActivityDate 
-                        FROM MemberRewards 
-                        WHERE StationId = ' + CAST(@stationId AS VARCHAR) + '
+                           SELECT [dbo].[MemberRewards].Tier, CAST(UsedAt AS DATE) AS ActivityDate 
+                           FROM [dbo].[RewardHistory] 
+                           INNER JOIN [dbo].[MemberRewards] 
+                           ON [dbo].[RewardHistory].[MemberId] = [dbo].[MemberRewards].[MemberID] 
+                           WHERE [dbo].[RewardHistory].StationId = ' + CAST(@StationId AS VARCHAR) + '
+                           GROUP BY [dbo].[MemberRewards].Tier, [dbo].[RewardHistory].[MemberId], CAST(UsedAt AS DATE)
                     ) AS SourceTable
                     PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
                 )

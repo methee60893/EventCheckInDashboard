@@ -95,7 +95,9 @@ namespace EventCheckInDashboard.Pages
         {
             var dailyCounts = new Dictionary<string, int>();
             string sql = @"
-                SELECT  CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS RightsCount
+                SELECT  CAST(UsedAt AS DATE) AS ActivityDate , 
+                        COUNT(DISTINCT MemberID) AS TotalMembers, 
+                        CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS RightsCount
                 FROM [dbo].[RewardHistory]
                 GROUP BY CAST(UsedAt AS DATE)
                 ORDER BY ActivityDate;
@@ -156,8 +158,8 @@ namespace EventCheckInDashboard.Pages
 
                                     -- สร้าง columns สำหรับ PIVOT
                                     SELECT @cols = STUFF((
-                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) 
-                                        FROM [dbo].[MemberRewards] 
+                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), UsedAt, 120)) 
+                                        FROM [dbo].[RewardHistory] 
                                         ORDER BY 1 
                                         FOR XML PATH(''), TYPE
                                     ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
@@ -166,8 +168,8 @@ namespace EventCheckInDashboard.Pages
 
                                     -- สร้าง formula สำหรับ TOTAL BY TIER
                                     SELECT @totalByTierCol = STUFF((
-                                        SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ', 0)' 
-                                        FROM [dbo].[MemberRewards] 
+                                        SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CONVERT(NVARCHAR(10), UsedAt, 120)) + ', 0)' 
+                                        FROM [dbo].[RewardHistory] 
                                         ORDER BY 1 
                                         FOR XML PATH(''), TYPE
                                     ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
@@ -176,8 +178,8 @@ namespace EventCheckInDashboard.Pages
 
                                     -- สร้าง columns สำหรับ SELECT (ไม่ใช้ SUM ในส่วนแรก)
                                     SELECT @colsForSelect = STUFF((
-                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ' AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
-                                        FROM [dbo].[MemberRewards] 
+                                        SELECT DISTINCT ',' + QUOTENAME(CONVERT(NVARCHAR(10), UsedAt, 120)) + ' AS ' + QUOTENAME(FORMAT(UsedAt, 'dd MMM')) 
+                                        FROM [dbo].[RewardHistory] 
                                         ORDER BY 1 
                                         FOR XML PATH(''), TYPE
                                     ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
@@ -185,8 +187,8 @@ namespace EventCheckInDashboard.Pages
                                     -- สร้าง columns สำหรับ SUM (ใช้ในส่วน TOTAL)
                                     DECLARE @colsForSum AS NVARCHAR(MAX);
                                     SELECT @colsForSum = STUFF((
-                                        SELECT DISTINCT ', SUM(' + QUOTENAME(CONVERT(NVARCHAR(10), CreatedAt, 120)) + ') AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
-                                        FROM [dbo].[MemberRewards] 
+                                        SELECT DISTINCT ', SUM(' + QUOTENAME(CONVERT(NVARCHAR(10), UsedAt, 120)) + ') AS ' + QUOTENAME(FORMAT(UsedAt, 'dd MMM')) 
+                                        FROM [dbo].[RewardHistory] 
                                         ORDER BY 1 
                                         FOR XML PATH(''), TYPE
                                     ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
@@ -197,8 +199,11 @@ namespace EventCheckInDashboard.Pages
                                         WITH PivotedData AS (
                                             SELECT Tier, ' + @cols + '
                                             FROM (
-                                                SELECT Tier, CAST(CreatedAt AS DATE) AS RegDate 
-                                                FROM [dbo].[MemberRewards]
+                                                SELECT [dbo].[MemberRewards].Tier, CAST(UsedAt AS DATE) AS RegDate 
+                                                FROM [dbo].[RewardHistory] 
+                                                INNER JOIN [dbo].[MemberRewards] 
+                                                ON [dbo].[RewardHistory].[MemberId] = [dbo].[MemberRewards].[MemberID] 
+                                                GROUP BY [dbo].[MemberRewards].Tier, [dbo].[RewardHistory].[MemberId], CAST(UsedAt AS DATE)
                                             ) AS SourceTable
                                             PIVOT (COUNT(RegDate) FOR RegDate IN (' + @cols + ')) AS PivotTable
                                         )
