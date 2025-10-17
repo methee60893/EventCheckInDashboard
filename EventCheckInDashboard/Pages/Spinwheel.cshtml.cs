@@ -90,12 +90,12 @@ namespace EventCheckInDashboard.Pages
             // --- Query สำหรับ Stacked Bar Chart (แยกตาม Segment จาก RewardTypeID) ---
             var dailyCounts = new Dictionary<string, (int Karat, int NewMem, int CardX)>();
             string barSql = @"
-                SELECT CAST(CreatedAt AS DATE) as ActivityDate,
-                    SUM(CASE WHEN RewardTypeID = 1 THEN 1 ELSE 0 END) AS Karat360,
+                SELECT CAST(UsedAt AS DATE) as ActivityDate,
+                    CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT) AS Karat360,
                     SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
                     SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
-                FROM [dbo].[MemberRewards] WHERE StationId = @stationId
-                GROUP BY CAST(CreatedAt AS DATE) ORDER BY ActivityDate;";
+                FROM [dbo].[RewardHistory] WHERE StationId = @stationId
+                GROUP BY CAST(UsedAt AS DATE) ORDER BY ActivityDate;";
 
             await using (var connection = new SqlConnection(connectionString))
             {

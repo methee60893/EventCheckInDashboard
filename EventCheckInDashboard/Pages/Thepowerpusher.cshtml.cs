@@ -53,7 +53,7 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadSummaryDataAsync(string connectionString, int stationId)
         {
-            string sql = "SELECT COUNT(MemberRewardID) AS TotalRights, COUNT(DISTINCT MemberID) AS TotalMembers FROM MemberRewards WHERE StationId = @StationId;";
+            string sql = "SELECT  CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights\r\nFROM [dbo].[RewardHistory]\r\nWHERE [StationId]=@StationId GROUP BY CAST(UsedAt AS DATE)\r\nORDER BY ActivityDate;\r\n;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
@@ -91,12 +91,12 @@ namespace EventCheckInDashboard.Pages
             // --- Query สำหรับ Stacked Bar Chart (แยกตาม Segment) ---
             var dailyCounts = new Dictionary<string, (int Receipt, int NewMem, int CardX)>();
             string barSql = @"
-                SELECT CAST(CreatedAt AS DATE) as ActivityDate,
-                    SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS Receipt15000,
-                    SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
-                    SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
-                FROM MemberRewards WHERE StationId = @StationId
-                GROUP BY CAST(CreatedAt AS DATE) ORDER BY ActivityDate;";
+                            SELECT CAST(UsedAt AS DATE) as ActivityDate,
+                                SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS Receipt15000, 
+                                SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
+                                SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
+                            FROM RewardHistory WHERE StationId = @StationId
+                            GROUP BY CAST(UsedAt AS DATE) ORDER BY ActivityDate;";
 
             await using (var connection = new SqlConnection(connectionString))
             {
