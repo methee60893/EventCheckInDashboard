@@ -44,7 +44,8 @@ namespace EventCheckInDashboard.Pages
                 }
                 int stationId = 2;
 
-                await LoadSummaryDataAsync(connectionString, stationId);
+                await LoadSummaryAutualRightDataAsync(connectionString, stationId);
+                await LoadSummaryMemberDataAsync(connectionString, stationId);
                 await LoadChartDataAsync(connectionString, stationId);
                 await LoadSegmentPivotTableAsync(connectionString, stationId);
                 await LoadTierPivotTableAsync(connectionString, stationId);
@@ -56,17 +57,30 @@ namespace EventCheckInDashboard.Pages
             }
         }
 
-        private async Task LoadSummaryDataAsync(string connectionString, int stationId)
+        private async Task LoadSummaryAutualRightDataAsync(string connectionString, int stationId)
         {
-            string sql = "SELECT COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights FROM [dbo].[RewardHistory] WHERE [StationId]=@StationId ;";
+            string sql = "SELECT CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT) + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights FROM [dbo].[RewardHistory] WHERE [StationId]=@StationId ;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
-            command.Parameters.AddWithValue("@StationId", stationId);
+            command.Parameters.AddWithValue("@stationId", stationId);
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 ActualRights = reader["TotalRights"] as int? ?? 0;
+
+            }
+        }
+        private async Task LoadSummaryMemberDataAsync(string connectionString, int stationId)
+        {
+            string sql = "SELECT COUNT(DISTINCT MemberID) AS TotalMembers FROM [dbo].[MemberRewards] WHERE [StationId]=@StationId ;";
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand(sql, connection);
+            command.Parameters.AddWithValue("@stationId", stationId);
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
                 ActualMembers = reader["TotalMembers"] as int? ?? 0;
             }
         }
@@ -100,7 +114,8 @@ namespace EventCheckInDashboard.Pages
                     CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT) AS Karat360,
                     SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
                     SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
-                FROM RewardHistory WHERE StationId = @StationId
+                FROM [dbo].[RewardHistory] 
+                WHERE StationId = @stationId
                 GROUP BY CAST(UsedAt AS DATE) ORDER BY ActivityDate;";
 
             await using (var connection = new SqlConnection(connectionString))
@@ -132,27 +147,32 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadSegmentPivotTableAsync(string connectionString, int stationId)
         {
-            string sql = @"
-                DECLARE @cols AS NVARCHAR(MAX), 
-                          @query AS NVARCHAR(MAX), 
-                          @totalCol AS NVARCHAR(MAX), 
-                          @colsForSelect AS NVARCHAR(MAX);
+            string sql = @"-- ประกาศตัวแปร
+                            DECLARE @cols AS NVARCHAR(MAX),
+                                    @query AS NVARCHAR(MAX),
+                                    @totalCol AS NVARCHAR(MAX),
+                                    @colsForSelect AS NVARCHAR(MAX);
 
+                            -- สร้างรายการคอลัมน์วันที่แบบไดนามิก
                             SELECT @cols = STUFF((
                                 SELECT DISTINCT ',' + QUOTENAME(CAST(UsedAt AS DATE)) 
                                 FROM RewardHistory 
                                 WHERE StationId = @StationId 
                                 FOR XML PATH(''), TYPE
                             ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+
+                            -- ถ้าไม่มีข้อมูล ให้จบการทำงาน
                             IF @cols IS NULL RETURN;
 
+                            -- สร้างส่วนที่ใช้คำนวณ Total (แนวนอน)
                             SELECT @totalCol = STUFF((
                                 SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)' 
                                 FROM RewardHistory 
                                 WHERE StationId = @StationId 
                                 FOR XML PATH(''), TYPE
-                            ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+                            ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''); -- เริ่มที่ 1, 2 เพื่อตัด ' + ' ตัวแรก
 
+                            -- สร้างส่วนที่ใช้คำนวณ Total (แนวตั้ง)
                             SELECT @colsForSelect = STUFF((
                                 SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(UsedAt, 'dd MMM')) 
                                 FROM RewardHistory 
@@ -160,32 +180,51 @@ namespace EventCheckInDashboard.Pages
                                 FOR XML PATH(''), TYPE
                             ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
+                            -- สร้าง Query หลัก
                             SET @query = N'
                             WITH SourceData AS (
-                                SELECT CAST(UsedAt AS DATE) AS ActivityDate,
-                                       CASE 
-                                            WHEN RewardTypeID = 1 THEN N''แลก360กะรัต'' 
-                                            WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่'' 
-                                            WHEN RewardTypeID = 3 THEN N''CARD X'' 
-                                            ELSE N''อื่นๆ'' 
-                                       END AS Segment
+                                SELECT 
+                                    CAST(UsedAt AS DATE) AS ActivityDate,
+                                    CASE 
+                                        WHEN RewardTypeID = 1 THEN N''แลก360กะรัต''
+                                        WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่''
+                                        WHEN RewardTypeID = 3 THEN N''CARD X''
+                                        ELSE N''อื่นๆ'' 
+                                    END AS Segment,
+        
+                                    -- นี่คือส่วนที่ปรับปรุงตามโจทย์
+                                    -- ถ้า RewardTypeID = 1 ให้ใช้ตรรกะการคำนวณ Carat
+                                    -- ถ้าไม่ใช่ ให้เป็น 1 เพื่อให้ SUM(1) ทำงานเหมือน COUNT()
+                                    CASE 
+                                        WHEN RewardTypeID = 1 THEN CAST(FLOOR(ISNULL(Carat, 0) / 360.0) AS INT)
+                                        ELSE 1 
+                                    END AS ValueToAggregate
+
                                 FROM RewardHistory 
-                                WHERE StationId = ' + CAST(@StationId AS VARCHAR) + '
+                                WHERE StationId = @p_StationId -- ใช้ Parameter แทนการต่อสตริง
                             ),
                             PivotedData AS (
                                 SELECT Segment, ' + @cols + '
                                 FROM SourceData
-                                PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
+                                -- เปลี่ยนจาก COUNT(ActivityDate) เป็น SUM(ValueToAggregate)
+                                PIVOT (
+                                    SUM(ValueToAggregate) 
+                                    FOR ActivityDate IN (' + @cols + ')
+                                ) AS pvt
                             )
                             SELECT 
-                                ISNULL(Segment, N''TOTAL BY DAY'') AS Segment, 
+                                ISNULL(Segment, N''TOTALBYDAY'') AS Segment, 
                                 ' + @colsForSelect + ', 
                                 SUM(' + @totalCol + ') AS [TOTAL BY SEGMENT]
                             FROM PivotedData
-                            GROUP BY ROLLUP(Segment) 
-                            ORDER BY CASE WHEN Segment = N''TOTAL BY DAY'' THEN 1 ELSE 0 END, Segment DESC';
+                            GROUP BY ROLLUP(Segment)
+                            ORDER BY CASE WHEN Segment IS NULL THEN 1 ELSE 0 END, Segment DESC';
 
-                            EXEC sp_executesql @query;";
+                            -- สั่งรัน Query แบบ Parameterized
+                            -- (แก้ @StationId เป็นตัวแปรของคุณ)
+                            EXEC sp_executesql @query, 
+                                               N'@p_StationId INT', 
+                   @p_StationId = @StationId;";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();

@@ -117,10 +117,12 @@ else
     </div>
 }
 @section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
           document.addEventListener('DOMContentLoaded', function () {
 
-            
+            Chart.register(ChartDataLabels);
+
             // ================== BAR CHART SETUP ==================
             const barDataJson = '@Html.Raw(Model.BarChartDataJson)';
             if (barDataJson) {
@@ -133,7 +135,21 @@ else
                         responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, bottom: 0, left: 10, right: 10 } },
                         plugins: {
                             legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 } } },
-                            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' } }
+                            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' } },
+                            datalabels: {
+                                display: true,
+                                anchor: 'end', 
+                                align: 'top',  
+                                color: '#444', 
+                                font: {
+                                    family: 'Inter',
+                                    weight: 500,
+                                    size: 11
+                                },
+                                formatter: (value, context) => {
+                                    return value > 0 ? value.toLocaleString('en-US') : '';
+                                }
+                            }
                         },
                         scales: {
                             y: { beginAtZero: true, max: 1000, position: 'left', ticks: { stepSize: 200, font: { size: 12, family: 'Inter' }, padding: 10 }, grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }, border: { display: false } },
@@ -177,12 +193,26 @@ else
                                 backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
                                 callbacks: {
                                     label: function(context) {
-                                        let label = context.label || '';
-                                        let value = context.parsed;
+                                        let label = context.label || 'Unknown Tier';
+                                        let value = context.parsed; 
                                         let total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
                                         return label + ': ' + value + ' คน (' + percentage + '%)';
                                     }
+                                }
+                            },
+                            datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 'bold',
+                                    size: 13
+                                },
+                                formatter: (value, context) => {
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = (value / total) * 100;
+                                    return percentage > 1 ? percentage.toFixed(0) + '%' : '';
                                 }
                             }
                         },

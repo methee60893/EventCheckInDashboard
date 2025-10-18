@@ -100,8 +100,10 @@ else
 }
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
          document.addEventListener('DOMContentLoaded', function () {
+                 Chart.register(ChartDataLabels);
         const stackedDataJson = '@Html.Raw(Model.StackedBarChartJson)';
             if (stackedDataJson) {
                 const stackedData = JSON.parse(stackedDataJson);
@@ -203,6 +205,20 @@ else
                                         let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
                                         return label + ': ' + value + ' คน (' + percentage + '%)';
                                     }
+                                }
+                            },
+                            datalabels: {
+                                display: true,
+                                color: '#333',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 'bold',
+                                    size: 13
+                                },
+                                formatter: (value, context) => {
+                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = (value / total) * 100;
+                                    return percentage > 1 ? percentage.toFixed(0) + '%' : '';
                                 }
                             }
                         },

@@ -1,7 +1,7 @@
 ﻿@page
 @model EventCheckInDashboard.Pages.ThepowerpusherModel
 @{
-    ViewData["Title"] = "Dashboard D&S 2025 - 03 THE POWER PUSHER";
+    ViewData["Title"] = "Dashboard D&S 2025 - 04 THE POWER PUSHER";
 }
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -14,7 +14,7 @@ else
     <div class="col-lg-6">
         <!-- Spin Section -->
         <div class="spin-section">
-            <div class="spin-title">3. THE POWER PUSHER</div>
+            <div class="spin-title">4. THE POWER PUSHER</div>
             <div class="spin-content">
                 <div class="wheel-image">
                     <div class="wheel-inner">POWER<br>PUSHER</div>
@@ -165,9 +165,10 @@ else
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-
+            Chart.register(ChartDataLabels);
             // ================== STACKED BAR CHART ==================
             const stackedDataJson = '@Html.Raw(Model.StackedBarChartJson)';
             if(stackedDataJson) {
@@ -182,6 +183,20 @@ else
                             legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 } } },
                             tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
                                 callbacks: { afterBody: (context) => 'รวม: ' + context.reduce((sum, item) => sum + item.parsed.y, 0) }
+                            },
+                            datalabels: {
+                                display: true,
+                                anchor: 'end',
+                                align: 'top',
+                                color: '#444',
+                                font: {
+                                    family: 'Inter',
+                                    weight: 500,
+                                    size: 11
+                                },
+                                formatter: (value, context) => {
+                                    return value > 0 ? value.toLocaleString('en-US') : '';
+                                }
                             }
                         },
                         scales: {
@@ -220,7 +235,21 @@ else
                             legend: { position: 'right', labels: { padding: 20, font: { size: 13, family: 'Inter', weight: 500 }, usePointStyle: true, pointStyle: 'circle' } },
                             tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
                                 callbacks: { label: (context) => (context.label || '') + ': ' + context.parsed + ' คน' }
-                            }
+                            },
+                              datalabels: {
+                                    display: true,
+                                    color: '#333',
+                                    font: {
+                                        family: 'Inter',
+                                        weight: 'bold',
+                                        size: 13
+                                    },
+                                    formatter: (value, context) => {
+                                        const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = (value / total) * 100;
+                                        return percentage > 1 ? percentage.toFixed(0) + '%' : '';
+                                    }
+                                }
                         },
                         animation: { animateRotate: true, animateScale: true, duration: 2000, easing: 'easeInOutQuart' }
                     }

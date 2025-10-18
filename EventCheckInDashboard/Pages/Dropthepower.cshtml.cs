@@ -100,7 +100,7 @@ namespace EventCheckInDashboard.Pages
             var dailyCounts = new Dictionary<string, (int Receipt, int NewMem, int CardX)>();
             string barSql = @"
                 SELECT CAST(UsedAt AS DATE) as ActivityDate,
-                    SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS Receipt8000, 
+                    SUM(CASE WHEN RewardTypeID = 4 THEN 1 ELSE 0 END) AS Receipt15000, 
                     SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
                     SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
                 FROM RewardHistory WHERE StationId = @StationId
@@ -115,7 +115,7 @@ namespace EventCheckInDashboard.Pages
                 while (await reader.ReadAsync())
                 {
                     string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
-                    dailyCounts[date] = ((int)reader["Receipt8000"], (int)reader["NewMembers"], (int)reader["CardX"]);
+                    dailyCounts[date] = ((int)reader["Receipt15000"], (int)reader["NewMembers"], (int)reader["CardX"]);
                 }
             }
 
@@ -125,7 +125,7 @@ namespace EventCheckInDashboard.Pages
                 labels = labels,
                 datasets = new object[]
                 {
-                    new { label = "ใบเสร็จ 8,000", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].Receipt : 0).ToList(), backgroundColor = "rgba(234, 179, 8, 0.85)" },
+                    new { label = "ใบเสร็จ 15,000", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].Receipt : 0).ToList(), backgroundColor = "rgba(234, 179, 8, 0.85)" },
                     new { label = "สมาชิกใหม่", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].NewMem : 0).ToList(), backgroundColor = "rgba(59, 130, 246, 0.85)" },
                     new { label = "CARD X", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].CardX : 0).ToList(), backgroundColor = "rgba(34, 197, 94, 0.85)" }
                 }
@@ -169,7 +169,7 @@ namespace EventCheckInDashboard.Pages
                             WITH SourceData AS (
                                 SELECT CAST(UsedAt AS DATE) AS ActivityDate,
                                        CASE 
-                                            WHEN RewardTypeID = 4 THEN N''ใบเสร็จ 8,000'' 
+                                            WHEN RewardTypeID = 4 THEN N''ใบเสร็จ 15,000'' 
                                             WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่'' 
                                             WHEN RewardTypeID = 3 THEN N''CARD X'' 
                                             ELSE N''อื่นๆ'' 
@@ -188,7 +188,7 @@ namespace EventCheckInDashboard.Pages
                                 SUM(' + @totalCol + ') AS [TOTAL BY SEGMENT]
                             FROM PivotedData
                             GROUP BY ROLLUP(Segment) 
-                            ORDER BY CASE WHEN Segment = N''TOTAL BY DAY'' THEN 1 ELSE 0 END, Segment DESC';
+                            ORDER BY CASE WHEN Segment IS NULL THEN 1 ELSE 0 END, Segment DESC';
 
                             EXEC sp_executesql @query;";
 
@@ -213,7 +213,7 @@ namespace EventCheckInDashboard.Pages
                         @totalCol AS NVARCHAR(MAX), 
                         @colsForSelect AS NVARCHAR(MAX);
 
-                SELECT @cols = STUFF((
+                 SELECT @cols = STUFF((
                     SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) 
                     FROM MemberRewards 
                     WHERE StationId = @StationId 
@@ -229,7 +229,6 @@ namespace EventCheckInDashboard.Pages
                     FOR XML PATH(''), TYPE
                 ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
 
-                -- **แก้ไขตรงนี้: เพิ่ม SUM() ครอบ ISNULL**
                 SELECT @colsForSelect = STUFF((
                     SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
                     FROM MemberRewards 
@@ -241,12 +240,10 @@ namespace EventCheckInDashboard.Pages
                 WITH PivotedData AS (
                     SELECT Tier, ' + @cols + '
                     FROM (
-                           SELECT [dbo].[MemberRewards].Tier, CAST(UsedAt AS DATE) AS ActivityDate 
-                           FROM [dbo].[RewardHistory] 
-                           INNER JOIN [dbo].[MemberRewards] 
-                           ON [dbo].[RewardHistory].[MemberId] = [dbo].[MemberRewards].[MemberID] 
-                           WHERE [dbo].[RewardHistory].StationId = ' + CAST(@StationId AS VARCHAR) + '
-                           GROUP BY [dbo].[MemberRewards].Tier, [dbo].[RewardHistory].[MemberId], CAST(UsedAt AS DATE)
+                             SELECT [dbo].[MemberRewards].Tier, CAST(CreatedAt AS DATE) AS ActivityDate 
+							   FROM [dbo].[MemberRewards] 
+							   WHERE [dbo].[MemberRewards].StationId = ' + CAST(@StationId AS VARCHAR) + '
+							   GROUP BY [dbo].[MemberRewards].Tier, [dbo].[MemberRewards].[MemberID], CAST(CreatedAt AS DATE)
                     ) AS SourceTable
                     PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
                 )
