@@ -57,8 +57,7 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadSummaryDataAsync(string connectionString, int stationId)
         {
-            // ใช้ RewardTypeID 1, 2, 3 สำหรับหน้านี้
-            string sql = "SELECT CAST(UsedAt AS DATE) AS ActivityDate , COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights\r\nFROM [dbo].[RewardHistory]\r\nWHERE [StationId]=@StationId GROUP BY CAST(UsedAt AS DATE)\r\nORDER BY ActivityDate;\r\n;";
+            string sql = "SELECT  COUNT(DISTINCT MemberID) AS TotalMembers, CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT)  + SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS TotalRights\r\nFROM [dbo].[RewardHistory]\r\nWHERE [StationId]=@StationId ;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
