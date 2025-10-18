@@ -23,6 +23,7 @@ namespace EventCheckInDashboard.Pages
         public int TotalActualRights { get; private set; }
         public int TotalActualMembers { get; private set; }
         public string? ErrorMessage { get; private set; }
+        public string? PieChartDataStoreJson { get; private set; }
 
         public IndexModel(IConfiguration configuration, ILogger<IndexModel> logger)
         {
@@ -43,7 +44,8 @@ namespace EventCheckInDashboard.Pages
                 // ดึงข้อมูลทั้ง 4 ส่วนพร้อมกัน
                 await LoadSummaryAutualRightDataAsync(connectionString);
                 await LoadSummaryMemberDataAsync(connectionString);
-                await LoadDonutChartDataAsync(connectionString);
+                //await LoadDonutChartDataAsync(connectionString);
+                await LoadAllPieChartDataAsync(connectionString);
                 await LoadBarChartDataAsync(connectionString);
                 await LoadPivotTableDataAsync(connectionString);
             }
@@ -110,6 +112,92 @@ namespace EventCheckInDashboard.Pages
                 });
             }
             DonutChartDataJson = JsonSerializer.Serialize(data);
+        }
+
+        private async Task LoadAllPieChartDataAsync(string connectionString)
+        {
+            // dataStore จะเก็บข้อมูลทุกชุด { "Summary": [...], "17-Oct": [...], "18-Oct": [...] }
+            var dataStore = new Dictionary<string, List<object>>();
+
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+
+            // --- 1. ดึงข้อมูลภาพรวม (Summary) ---
+            var summaryData = new List<object>();
+            string summarySql = @"
+                    SELECT Tier, COUNT(DISTINCT MemberID) AS TotalMembers
+                    FROM [dbo].[MemberRewards]
+                    GROUP BY Tier
+                    ORDER BY TotalMembers DESC;";
+
+            await using (var summaryCommand = new SqlCommand(summarySql, connection))
+            await using (var reader = await summaryCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    summaryData.Add(new
+                    {
+                        Tier = reader["Tier"].ToString(),
+                        TotalMembers = (int)reader["TotalMembers"]
+                    });
+                }
+            }
+            // เพิ่มข้อมูลภาพรวมลงใน Store
+            dataStore["Summary"] = summaryData;
+
+            // --- 2. ดึงข้อมูลรายวัน (ใช้ตรรกะเดียวกับ Pivot Table) ---
+            string dailySql = @"
+                WITH FirstReward AS (
+                    SELECT 
+                        MemberID, 
+                        Tier, 
+                        CAST(CreatedAt AS DATE) AS RegDate,
+                        ROW_NUMBER() OVER(PARTITION BY MemberID ORDER BY CreatedAt ASC) as rn
+                    FROM [dbo].[MemberRewards]
+                )
+                SELECT 
+                    RegDate, 
+                    Tier, 
+                    COUNT(MemberID) AS TotalMembers
+                FROM FirstReward
+                WHERE rn = 1
+                GROUP BY RegDate, Tier
+                ORDER BY RegDate, Tier;";
+
+            var dailyResults = new Dictionary<string, List<object>>();
+
+            await using (var dailyCommand = new SqlCommand(dailySql, connection))
+            await using (var reader = await dailyCommand.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    if (reader["RegDate"] != DBNull.Value)
+                    {
+                        // จัดรูปแบบวันที่ให้เป็น "dd-MMM" (เช่น "17-Oct")
+                        string dateKey = ((DateTime)reader["RegDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
+
+                        if (!dailyResults.ContainsKey(dateKey))
+                        {
+                            dailyResults[dateKey] = new List<object>();
+                        }
+
+                        dailyResults[dateKey].Add(new
+                        {
+                            Tier = reader["Tier"].ToString(),
+                            TotalMembers = (int)reader["TotalMembers"]
+                        });
+                    }
+                }
+            }
+
+            // เพิ่มข้อมูลรายวันที่จัดกลุ่มแล้ว ลงใน Store หลัก
+            foreach (var entry in dailyResults)
+            {
+                dataStore[entry.Key] = entry.Value;
+            }
+
+            // --- 3. แปลง dataStore ทั้งหมดเป็น JSON ---
+            PieChartDataStoreJson = JsonSerializer.Serialize(dataStore);
         }
 
         // --- เมธอดสำหรับดึงข้อมูล Bar Chart ---

@@ -41,6 +41,21 @@ else
         <!-- Right Section -->
         <div class="col-lg-6">
             <!-- 3D Pie Chart -->
+
+            <div class="chart-filter-container" style="text-align: right; margin-bottom: 10px;">
+                <label for="pieChartFilter" style="margin-right: 5px; font-weight: 500;">แสดงข้อมูล:</label>
+                <select id="pieChartFilter" class="form-control form-control-sm" style="display: inline-block; width: auto; border-radius: 8px;">
+                    <option value="Summary">Summary (ภาพรวม)</option>
+                    <option value="17-Oct">17-Oct</option>
+                    <option value="18-Oct">18-Oct</option>
+                    <option value="19-Oct">19-Oct</option>
+                    <option value="20-Oct">20-Oct</option>
+                    <option value="21-Oct">21-Oct</option>
+                    <option value="22-Oct">22-Oct</option>
+                    <option value="23-Oct">23-Oct</option>
+                </select>
+            </div>
+
             <div class="pie-container">
                 <div class="pie-wrapper">
                     <div class="pie-chart-3d">
@@ -161,16 +176,33 @@ else
             }
 
 
-            // ================== PIE CHART (DOUGHNUT) SETUP ==================
-            const pieDataJson = '@Html.Raw(Model.DonutChartDataJson)';
-            if (pieDataJson) {
-                 const pieApiData = JSON.parse(pieDataJson);
-                 const tierColors = {
-                    'NAVY': 'rgba(102, 126, 234, 0.9)',
-                    'SCARLET': 'rgba(255, 140, 66, 0.9)',
-                    'CROWN': 'rgba(184, 184, 184, 0.9)',
-                    'VEGA': 'rgba(255, 193, 7, 0.9)'
-                };
+                    // ================== PIE CHART (DOUGHNUT) SETUP ==================
+        // 1. เปลี่ยนชื่อตัวแปรเป็น PieChartDataStoreJson (ตาม C#)
+        const pieDataStoreJson = '@Html.Raw(Model.PieChartDataStoreJson)';
+
+        // 2. ประกาศตัวแปร pieChart ไว้ด้านนอก
+        let pieChart;
+
+        if (pieDataStoreJson) {
+            // 3. Parse JSON ที่มีข้อมูลทั้งหมด (Summary + Daily)
+            const allPieData = JSON.parse(pieDataStoreJson);
+
+            // (ผมเพิ่ม 'CRYSTAL' เข้าไปให้ เผื่อมีข้อมูลนี้)
+            const tierColors = {
+                'NAVY': 'rgba(102, 126, 234, 0.9)',
+                'SCARLET': 'rgba(255, 140, 66, 0.9)',
+                'CROWN': 'rgba(184, 184, 184, 0.9)',
+                'VEGA': 'rgba(255, 193, 7, 0.9)',
+                'CRYSTAL': 'rgba(0, 191, 165, 0.9)' // สีสำหรับ CRYSTAL (ปรับแก้ได้)
+            };
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+
+            // 4. สร้างฟังก์ชันสำหรับอัปเดต Pie Chart
+            function updatePieChart(dataKey) {
+                // 5. ดึงข้อมูลชุดที่เลือก (เช่น "Summary" หรือ "17-Oct")
+                // ถ้าไม่มีข้อมูล (เช่น วันที่ 19-Oct ไม่มีคน) ให้ใช้ Array ว่าง []
+                const pieApiData = allPieData[dataKey] || [];
 
                 const pieData = {
                     labels: pieApiData.map(d => d.Tier),
@@ -181,45 +213,60 @@ else
                     }]
                 };
 
-                const pieCtx = document.getElementById('pieChart').getContext('2d');
-                const pieChart = new Chart(pieCtx, {
-                    type: 'doughnut',
-                    data: pieData,
-                    options: {
-                        responsive: true, maintainAspectRatio: false, cutout: '45%',
-                        plugins: {
-                            legend: { position: 'right', labels: { padding: 20, font: { size: 13, family: 'Inter', weight: 500 }, usePointStyle: true, pointStyle: 'circle' } },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.label || 'Unknown Tier';
-                                        let value = context.parsed; 
-                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                                        return label + ': ' + value + ' คน (' + percentage + '%)';
+                // 6. ตรวจสอบว่า Chart ถูกสร้างหรือยัง
+                if (!pieChart) {
+                    // ถ้ายังไม่ได้สร้าง: ให้สร้างใหม่
+                    pieChart = new Chart(pieCtx, {
+                        type: 'doughnut',
+                        data: pieData, // ใช้ข้อมูลชุดแรก
+                        options: {
+                            responsive: true, maintainAspectRatio: false, cutout: '45%',
+                            plugins: {
+                                legend: { position: 'right', labels: { padding: 20, font: { size: 13, family: 'Inter', weight: 500 }, usePointStyle: true, pointStyle: 'circle' } },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || 'Unknown Tier';
+                                            let value = context.parsed;
+                                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                                            return label + ': ' + value + ' คน (' + percentage + '%)';
+                                        }
+                                    }
+                                },
+                                datalabels: {
+                                    display: true,
+                                    color: '#333',
+                                    font: { family: 'Inter', weight: 'bold', size: 13 },
+                                    formatter: (value, context) => {
+                                        const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                        const percentage = (value / total) * 100;
+                                        return percentage > 1 ? percentage.toFixed(0) + '%' : '';
                                     }
                                 }
                             },
-                            datalabels: {
-                                display: true,
-                                color: '#333',
-                                font: {
-                                    family: 'Inter',
-                                    weight: 'bold',
-                                    size: 13
-                                },
-                                formatter: (value, context) => {
-                                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                    const percentage = (value / total) * 100;
-                                    return percentage > 1 ? percentage.toFixed(0) + '%' : '';
-                                }
-                            }
-                        },
-                        animation: { animateRotate: true, animateScale: true, duration: 2000, easing: 'easeInOutQuart' }
-                    }
+                            animation: { animateRotate: true, animateScale: true, duration: 2000, easing: 'easeInOutQuart' }
+                        }
+                    });
+                } else {
+                    // ถ้าสร้างแล้ว: ให้อัปเดตข้อมูลแล้วสั่ง .update()
+                    pieChart.data = pieData;
+                    pieChart.update();
+                }
+            }
+
+            // 7. เพิ่ม Event Listener ให้กับ Dropdown
+            const filterSelect = document.getElementById('pieChartFilter');
+            if (filterSelect) {
+                filterSelect.addEventListener('change', function(e) {
+                    updatePieChart(e.target.value); // เรียกฟังก์ชันอัปเดตเมื่อมีการเปลี่ยนแปลง
                 });
             }
+
+            // 8. โหลด Chart ครั้งแรกด้วยข้อมูล "Summary"
+            updatePieChart('Summary');
+        }
 
             // 3D hover effect for pie chart
             const pieWrapper = document.querySelector('.pie-wrapper');
