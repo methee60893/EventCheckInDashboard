@@ -1,7 +1,12 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
-using System.Dynamic;
 using System.Text.Json;
+using System; // <-- Add this using directive
+using System.Linq;
 
 namespace EventCheckInDashboard.Pages
 {

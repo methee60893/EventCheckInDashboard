@@ -1,7 +1,13 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Configuration;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
-using System.Dynamic;
 using System.Text.Json;
+using System;
+using System.Linq;
+using System.Dynamic;
 
 namespace EventCheckInDashboard.Pages
 {
@@ -106,7 +112,7 @@ namespace EventCheckInDashboard.Pages
                 await using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM");
+                    string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
                     dailyCounts[date] = ((int)reader["Receipt15000"], (int)reader["NewMembers"], (int)reader["CardX"]);
                 }
             }
