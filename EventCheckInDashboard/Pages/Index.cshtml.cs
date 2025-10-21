@@ -43,8 +43,6 @@ namespace EventCheckInDashboard.Pages
 
                 // ดึงข้อมูลทั้ง 4 ส่วนพร้อมกัน
                 await LoadSummaryAutualRightDataAsync(connectionString);
-                await LoadSummaryMemberDataAsync(connectionString);
-                //await LoadDonutChartDataAsync(connectionString);
                 await LoadAllPieChartDataAsync(connectionString);
                 await LoadBarChartDataAsync(connectionString);
                 await LoadPivotTableDataAsync(connectionString);
@@ -69,50 +67,9 @@ namespace EventCheckInDashboard.Pages
             if (await reader.ReadAsync())
             {
                 TotalActualRights = (int)reader["TotalRights"];
-
             }
         }
 
-        private async Task LoadSummaryMemberDataAsync(string connectionString)
-        {
-            string sql = "SELECT COUNT(DISTINCT MemberID) AS TotalMembers FROM [dbo].[MemberRewards] ;";
-
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            await using var command = new SqlCommand(sql, connection);
-            await using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                TotalActualMembers = (int)reader["TotalMembers"];
-            }
-        }
-
-
-        private async Task LoadDonutChartDataAsync(string connectionString)
-        {
-            var data = new List<object>();
-            string sql = @"
-                SELECT Tier, COUNT(DISTINCT MemberID) AS TotalMembers
-                FROM [dbo].[MemberRewards]
-                GROUP BY Tier
-                ORDER BY TotalMembers DESC;";
-
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync();
-            await using var command = new SqlCommand(sql, connection);
-            await using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                data.Add(new
-                {
-                    Tier = reader["Tier"].ToString(),
-                    TotalMembers = (int)reader["TotalMembers"]
-                });
-            }
-            DonutChartDataJson = JsonSerializer.Serialize(data);
-        }
 
         private async Task LoadAllPieChartDataAsync(string connectionString)
         {
@@ -173,7 +130,7 @@ namespace EventCheckInDashboard.Pages
                 {
                     if (reader["RegDate"] != DBNull.Value)
                     {
-                        // จัดรูปแบบวันที่ให้เป็น "dd-MMM" (เช่น "17-Oct")
+                        // จัดรูปแบบวันที่ให้เป็น "dd-MMM" (เช่น "23-Oct")
                         string dateKey = ((DateTime)reader["RegDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
 
                         if (!dailyResults.ContainsKey(dateKey))
@@ -228,7 +185,7 @@ namespace EventCheckInDashboard.Pages
             }
 
             // สร้างข้อมูลสำหรับ Chart.js
-            var labels = new List<string> { "17-Oct", "18-Oct", "19-Oct", "20-Oct", "21-Oct", "22-Oct", "23-Oct" };
+            var labels = new List<string> { "24-Oct", "25-Oct", "26-Oct" };
             var actualData = new List<int>();
             foreach (var label in labels)
             {
@@ -241,14 +198,14 @@ namespace EventCheckInDashboard.Pages
                 datasets = new[] {
                     new {
                         label = "TARGET",
-                        data = new List<int> { 800, 800, 800, 800, 800, 800, 800 },
+                        data = new List<int> { 730, 730, 730 },
                         backgroundColor = "rgba(102, 126, 234, 0.8)",
                         borderRadius = 8
                     },
                     new {
                         label = "ACTUAL",
                         data = actualData,
-                        //data = new List<int> { 400, 0, 0, 0, 0, 0, 0 },
+                        //data = new List<int> { 400, 0, 0 },
                         backgroundColor = "rgba(255, 140, 66, 0.8)",
                         borderRadius = 8
                     }

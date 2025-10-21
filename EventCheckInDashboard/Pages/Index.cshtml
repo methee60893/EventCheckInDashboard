@@ -1,7 +1,7 @@
 ﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Dashboard D&S 2025 - MAIN";
+    ViewData["Title"] = "JOYFINITY CELEBRATION The 1ts ANNIVERSARY - MAIN";
 }
 @if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
@@ -9,7 +9,7 @@
 }
 else
 {
-    <p class="subtitle">จำนวนสมาชิกที่ร่วมกิจกรรมทั้ง 4 กิจกรรม</p>
+    <p class="subtitle">จำนวนสมาชิกที่ร่วมกิจกรรมทั้ง 6 กิจกรรม</p>
 
     <div class="row">
         <!-- Left Section -->
@@ -18,15 +18,11 @@ else
             <div class="info-box">
                 <div class="info-row">
                     <span class="info-label">TARGET</span>
-                    <span class="info-value">5,600 สิทธิ์</span>
+                    <span class="info-value">2,190 สิทธิ์</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">ACTUAL</span>
                 <span class="info-value" id="actualValue">@Model.TotalActualRights.ToString("N0") สิทธิ์</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">จำนวนสมาชิกที่แลก</span>
-                <span class="info-value" id="actualMember">@Model.TotalActualMembers.ToString("N0") คน</span>
                 </div>
             </div>
 
@@ -46,13 +42,9 @@ else
                 <label for="pieChartFilter" style="margin-right: 5px; font-weight: 500;">แสดงข้อมูล:</label>
                 <select id="pieChartFilter" class="form-control form-control-sm" style="display: inline-block; width: auto; border-radius: 8px;">
                     <option value="Summary">Summary (ภาพรวม)</option>
-                    <option value="17-Oct">17-Oct</option>
-                    <option value="18-Oct">18-Oct</option>
-                    <option value="19-Oct">19-Oct</option>
-                    <option value="20-Oct">20-Oct</option>
-                    <option value="21-Oct">21-Oct</option>
-                    <option value="22-Oct">22-Oct</option>
-                    <option value="23-Oct">23-Oct</option>
+                    <option value="24-Oct">24-Oct</option>
+                    <option value="25-Oct">25-Oct</option>
+                    <option value="26-Oct">26-Oct</option>
                 </select>
             </div>
 
