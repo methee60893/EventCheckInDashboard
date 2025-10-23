@@ -43,7 +43,7 @@ namespace EventCheckInDashboard.Pages
                 {
                     throw new InvalidOperationException("Connection string 'DefaultConnection' is missing or empty.");
                 }
-                int stationId = 1;
+                int stationId = 5;
 
                 await LoadSummaryAutualRightDataAsync(connectionString, stationId);
                 await LoadSummaryMemberDataAsync(connectionString, stationId);
@@ -59,7 +59,7 @@ namespace EventCheckInDashboard.Pages
         }
         private async Task LoadSummaryAutualRightDataAsync(string connectionString, int stationId)
         {
-            string sql = "SELECT SUM(CASE WHEN RewardTypeID = 5 THEN 1 ELSE 0 END) + SUM(CASE WHEN RewardTypeID = 6 THEN 1 ELSE 0 END) AS TotalRights FROM [dbo].[RewardHistory] WHERE [StationId]=@StationId ;";
+            string sql = "SELECT SUM(CASE WHEN RewardTypeID IN (5,6,7,8) THEN 1 ELSE 0 END) AS TotalRights FROM [dbo].[RewardHistory] WHERE [StationId]=@StationId ;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
@@ -108,12 +108,13 @@ namespace EventCheckInDashboard.Pages
             PieChartJson = JsonSerializer.Serialize(pieChartData);
 
             // --- Query สำหรับ Stacked Bar Chart (แยกตาม Segment จาก RewardTypeID) ---
-            var dailyCounts = new Dictionary<string, (int Karat, int NewMem, int CardX)>();
+            var dailyCounts = new Dictionary<string, (int Lancaster, int LOreal, int CultiMilano, int Pretz)>();
             string barSql = @"
                 SELECT CAST(UsedAt AS DATE) as ActivityDate,
-                    CAST(SUM(CASE WHEN RewardTypeID = 1 THEN FLOOR(Carat/360.0) ELSE 0 END) AS INT) AS Karat360,
-                    SUM(CASE WHEN RewardTypeID = 2 THEN 1 ELSE 0 END) AS NewMembers,
-                    SUM(CASE WHEN RewardTypeID = 3 THEN 1 ELSE 0 END) AS CardX
+                    SUM(CASE WHEN RewardTypeID = 5 THEN 1 ELSE 0 END) AS Lancaster,
+                    SUM(CASE WHEN RewardTypeID = 6 THEN 1 ELSE 0 END) AS LOreal,
+                    SUM(CASE WHEN RewardTypeID = 7 THEN 1 ELSE 0 END) AS CultiMilano,
+                    SUM(CASE WHEN RewardTypeID = 8 THEN 1 ELSE 0 END) AS Pretz
                 FROM [dbo].[RewardHistory] 
                 WHERE StationId = @stationId
                 GROUP BY CAST(UsedAt AS DATE) ORDER BY ActivityDate;";
@@ -127,7 +128,7 @@ namespace EventCheckInDashboard.Pages
                 while (await reader.ReadAsync())
                 {
                     string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
-                    dailyCounts[date] = ((int)reader["Karat360"], (int)reader["NewMembers"], (int)reader["CardX"]);
+                    dailyCounts[date] = ((int)reader["Lancaster"], (int)reader["LOreal"], (int)reader["CultiMilano"], (int)reader["Pretz"]);
                 }
             }
 
@@ -137,9 +138,10 @@ namespace EventCheckInDashboard.Pages
                 labels = labels,
                 datasets = new object[]
                 {
-                    new { label = "แลก360กะรัต", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].Karat : 0).ToList(), backgroundColor = "rgba(234, 179, 8, 0.85)" },
-                    new { label = "สมาชิกใหม่", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].NewMem : 0).ToList(), backgroundColor = "rgba(59, 130, 246, 0.85)" },
-                    new { label = "CARD X", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].CardX : 0).ToList(), backgroundColor = "rgba(34, 197, 94, 0.85)" }
+                    new { label = "Lancaster", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].Lancaster : 0).ToList(), backgroundColor = "rgba(234, 179, 8, 0.85)" },
+                    new { label = "L'Oreal", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].LOreal : 0).ToList(), backgroundColor = "rgba(59, 130, 246, 0.85)" },
+                    new { label = "Culti Milano", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].CultiMilano : 0).ToList(), backgroundColor = "rgba(34, 197, 94, 0.85)" },
+                    new { label = "Pretz", data = labels.Select(l => dailyCounts.ContainsKey(l) ? dailyCounts[l].Pretz : 0).ToList(), backgroundColor = "rgba(12, 68, 245, 0.85)" }
                 }
             };
             StackedBarChartJson = JsonSerializer.Serialize(barData);
@@ -186,19 +188,13 @@ namespace EventCheckInDashboard.Pages
                             SELECT 
                                 CAST(UsedAt AS DATE) AS ActivityDate,
                                 CASE 
-                                    WHEN RewardTypeID = 1 THEN N''แลก360กะรัต''
-                                    WHEN RewardTypeID = 2 THEN N''สมาชิกใหม่''
-                                    WHEN RewardTypeID = 3 THEN N''CARD X''
+                                    WHEN RewardTypeID = 5 THEN N''Lancaster''
+                                    WHEN RewardTypeID = 6 THEN N''L'Oreal''
+                                    WHEN RewardTypeID = 7 THEN N''Culti Milano''
+                                    WHEN RewardTypeID = 8 THEN N''Pretz''
                                     ELSE N''อื่นๆ'' 
                                 END AS Segment,
-        
-                                -- นี่คือส่วนที่ปรับปรุงตามโจทย์
-                                -- ถ้า RewardTypeID = 1 ให้ใช้ตรรกะการคำนวณ Carat
-                                -- ถ้าไม่ใช่ ให้เป็น 1 เพื่อให้ SUM(1) ทำงานเหมือน COUNT()
-                                CASE 
-                                    WHEN RewardTypeID = 1 THEN CAST(FLOOR(ISNULL(Carat, 0) / 360.0) AS INT)
-                                    ELSE 1 
-                                END AS ValueToAggregate
+                                1 AS ValueToAggregate
 
                             FROM RewardHistory 
                             WHERE StationId = @p_StationId -- ใช้ Parameter แทนการต่อสตริง
