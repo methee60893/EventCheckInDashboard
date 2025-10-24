@@ -43,10 +43,12 @@ namespace EventCheckInDashboard.Pages
                     throw new InvalidOperationException("Connection string 'DefaultConnection' is missing or empty.");
                 }
                 int stationId = 9;
+                string startDate = "2025-10-24";
+                string endDate = "2025-10-26";
 
-                await LoadSummaryAutualRightDataAsync(connectionString, stationId);
-                await LoadSummaryMemberDataAsync(connectionString, stationId);
-                await LoadChartDataAsync(connectionString, stationId);
+                await LoadSummaryAutualRightDataAsync(connectionString, stationId, startDate, endDate);
+                await LoadSummaryMemberDataAsync(connectionString, stationId, startDate, endDate);
+                await LoadChartDataAsync(connectionString, stationId, startDate, endDate);
                 await LoadSegmentPivotTableAsync(connectionString, stationId);
                 await LoadTierPivotTableAsync(connectionString, stationId);
             }
@@ -56,13 +58,18 @@ namespace EventCheckInDashboard.Pages
                 ErrorMessage = "เกิดข้อผิดพลาดในการดึงข้อมูลสำหรับหน้า CandleStack";
             }
         }
-        private async Task LoadSummaryAutualRightDataAsync(string connectionString, int stationId)
+        private async Task LoadSummaryAutualRightDataAsync(string connectionString, int stationId, string startDate, string endDate)
         {
-            string sql = "SELECT SUM(CASE WHEN RewardTypeID = 13 THEN 1 ELSE 0 END) AS TotalRights FROM [dbo].[RewardHistory] WHERE [StationId]=@StationId ;";
+            string sql = @"SELECT SUM(CASE WHEN RewardTypeID = 13 THEN 1 ELSE 0 END) AS TotalRights 
+                            FROM [dbo].[RewardHistory] 
+                            WHERE [StationId]=@StationId 
+                            AND  CAST([UsedAt] AS DATE) BETWEEN @startDate AND @endDate ;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@stationId", stationId);
+            command.Parameters.AddWithValue("@startDate", startDate);
+            command.Parameters.AddWithValue("@endDate", endDate);
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
@@ -70,27 +77,32 @@ namespace EventCheckInDashboard.Pages
 
             }
         }
-        private async Task LoadSummaryMemberDataAsync(string connectionString, int stationId)
+        private async Task LoadSummaryMemberDataAsync(string connectionString, int stationId, string startDate, string endDate)
         {
-            string sql = "SELECT COUNT(DISTINCT MemberID) AS TotalMembers FROM [dbo].[MemberRewards] WHERE [StationId]=@StationId ;";
+            string sql = @"SELECT COUNT(DISTINCT MemberID) AS TotalMembers 
+                            FROM [dbo].[MemberRewards] WHERE [StationId]=@StationId  
+                            AND  CAST([CreatedAt] AS DATE) BETWEEN @startDate AND @endDate ;";
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
             await using var command = new SqlCommand(sql, connection);
             command.Parameters.AddWithValue("@stationId", stationId);
+            command.Parameters.AddWithValue("@startDate", startDate);
+            command.Parameters.AddWithValue("@endDate", endDate);
             await using var reader = await command.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
                 ActualMembers = reader["TotalMembers"] as int? ?? 0;
             }
-        }
-
-        private async Task LoadChartDataAsync(string connectionString, int stationId)
+        } 
+        private async Task LoadChartDataAsync(string connectionString, int stationId, string startDate, string endDate)
         {
             // --- Query สำหรับ Pie Chart (แยกตาม Tier) ---
             var pieChartData = new List<object>();
             string pieSql = @"
                 SELECT Tier, COUNT(DISTINCT MemberID) AS MemberCount
-                FROM [dbo].[MemberRewards] WHERE StationId = @stationId
+                FROM [dbo].[MemberRewards] 
+                WHERE StationId = @stationId
+                AND  CAST([CreatedAt] AS DATE) BETWEEN @startDate AND @endDate
                 GROUP BY Tier ORDER BY Tier;";
 
             await using (var connection = new SqlConnection(connectionString))
@@ -98,6 +110,8 @@ namespace EventCheckInDashboard.Pages
                 await connection.OpenAsync();
                 await using var command = new SqlCommand(pieSql, connection);
                 command.Parameters.AddWithValue("@stationId", stationId);
+                command.Parameters.AddWithValue("@startDate", startDate);
+                command.Parameters.AddWithValue("@endDate", endDate);
                 await using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
@@ -110,9 +124,10 @@ namespace EventCheckInDashboard.Pages
             var dailyCounts = new Dictionary<string, int>();
             string barSql = @"
                 SELECT CAST(UsedAt AS DATE) as ActivityDate,
-                    SUM(CASE WHEN RewardTypeID = 13 THEN 1 ELSE 0 END) AS bill10000
+                    SUM(ISNULL(CASE WHEN RewardTypeID = 13 THEN 1 ELSE 0 END,0)) AS bill10000
                 FROM [dbo].[RewardHistory] 
                 WHERE StationId = @stationId
+                AND  CAST([UsedAt] AS DATE) BETWEEN @startDate AND @endDate
                 GROUP BY CAST(UsedAt AS DATE) ORDER BY ActivityDate;";
 
             await using (var connection = new SqlConnection(connectionString))
@@ -120,11 +135,13 @@ namespace EventCheckInDashboard.Pages
                 await connection.OpenAsync();
                 await using var command = new SqlCommand(barSql, connection);
                 command.Parameters.AddWithValue("@stationId", stationId);
+                command.Parameters.AddWithValue("@startDate", startDate);
+                command.Parameters.AddWithValue("@endDate", endDate);
                 await using var reader = await command.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
                     string date = ((DateTime)reader["ActivityDate"]).ToString("dd-MMM", System.Globalization.CultureInfo.InvariantCulture);
-                    dailyCounts[date] = ((int)reader["bill20000"]);
+                    dailyCounts[date] = ((int)reader["bill10000"]);
                 }
             }
 
@@ -146,13 +163,16 @@ namespace EventCheckInDashboard.Pages
                         DECLARE @cols AS NVARCHAR(MAX),
                                 @query AS NVARCHAR(MAX),
                                 @totalCol AS NVARCHAR(MAX),
-                                @colsForSelect AS NVARCHAR(MAX);
+                                @colsForSelect AS NVARCHAR(MAX),
+                                @startDate DATE = '2025-10-24',
+                                @endDate DATE = '2025-10-26';
 
                         -- สร้างรายการคอลัมน์วันที่แบบไดนามิก
                         SELECT @cols = STUFF((
                             SELECT DISTINCT ',' + QUOTENAME(CAST(UsedAt AS DATE)) 
                             FROM RewardHistory 
-                            WHERE StationId = @StationId 
+                            WHERE StationId = @StationId
+                            AND  CAST([UsedAt] AS DATE) BETWEEN @startDate AND @endDate 
                             FOR XML PATH(''), TYPE
                         ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
@@ -163,7 +183,8 @@ namespace EventCheckInDashboard.Pages
                         SELECT @totalCol = STUFF((
                             SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)' 
                             FROM RewardHistory 
-                            WHERE StationId = @StationId 
+                            WHERE StationId = @StationId
+                            AND  CAST([UsedAt] AS DATE) BETWEEN @startDate AND @endDate 
                             FOR XML PATH(''), TYPE
                         ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''); -- เริ่มที่ 1, 2 เพื่อตัด ' + ' ตัวแรก
 
@@ -172,6 +193,7 @@ namespace EventCheckInDashboard.Pages
                             SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(UsedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(UsedAt, 'dd MMM')) 
                             FROM RewardHistory 
                             WHERE StationId = @StationId 
+                            AND  CAST([UsedAt] AS DATE) BETWEEN @startDate AND @endDate 
                             FOR XML PATH(''), TYPE
                         ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
@@ -187,7 +209,7 @@ namespace EventCheckInDashboard.Pages
                                 1 AS ValueToAggregate
 
                             FROM RewardHistory 
-                            WHERE StationId = @p_StationId -- ใช้ Parameter แทนการต่อสตริง
+                            WHERE StationId = @p_StationId
                         ),
                         PivotedData AS (
                             SELECT Segment, ' + @cols + '
@@ -228,53 +250,114 @@ namespace EventCheckInDashboard.Pages
 
         private async Task LoadTierPivotTableAsync(string connectionString, int stationId)
         {
-            string sql = @"DECLARE @cols AS NVARCHAR(MAX), @query AS NVARCHAR(MAX), @totalCol AS NVARCHAR(MAX), @colsForSelect AS NVARCHAR(MAX);
+            string sql = @"DECLARE @cols AS NVARCHAR(MAX), 
+                                        @query AS NVARCHAR(MAX), 
+                                        @totalCol AS NVARCHAR(MAX), 
+                                        @colsForSelect AS NVARCHAR(MAX),
+                                        @colsAlias AS NVARCHAR(MAX),
+                                        @startDate DATE = '2025-10-24',
+                                        @endDate DATE = '2025-10-26';
 
-                        SELECT @cols = STUFF((
-                            SELECT DISTINCT ',' + QUOTENAME(CAST(CreatedAt AS DATE)) 
-                            FROM MemberRewards 
-                            WHERE StationId = @StationId 
-                            FOR XML PATH(''), TYPE
-                        ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+                                -- สร้างคอลัมน์สำหรับ PIVOT (รูปแบบ date)
+                                SELECT @cols = STUFF((
+                                    SELECT ',' + QUOTENAME(DateCol)
+                                    FROM (
+                                        SELECT DISTINCT CONVERT(NVARCHAR(10), CreatedAt, 120) AS DateCol
+                                        FROM MemberRewards 
+                                        WHERE StationId = @StationId 
+                                          AND CAST(CreatedAt AS DATE) BETWEEN @startDate AND @endDate
+                                    ) AS Dates
+                                    ORDER BY DateCol
+                                    FOR XML PATH(''), TYPE
+                                ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
-                        IF @cols IS NULL RETURN;
+                                IF @cols IS NULL OR @cols = '' RETURN;
 
-                        SELECT @totalCol = STUFF((
-                            SELECT DISTINCT ' + ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)' 
-                            FROM MemberRewards 
-                            WHERE StationId = @StationId 
-                            FOR XML PATH(''), TYPE
-                        ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
+                                -- สร้างสูตรสำหรับ TOTAL BY TIER
+                                SELECT @totalCol = STUFF((
+                                    SELECT ' + ISNULL(' + QUOTENAME(DateCol) + ', 0)'
+                                    FROM (
+                                        SELECT DISTINCT CONVERT(NVARCHAR(10), CreatedAt, 120) AS DateCol
+                                        FROM MemberRewards 
+                                        WHERE StationId = @StationId 
+                                          AND CAST(CreatedAt AS DATE) BETWEEN @startDate AND @endDate
+                                    ) AS Dates
+                                    ORDER BY DateCol
+                                    FOR XML PATH(''), TYPE
+                                ).value('.', 'NVARCHAR(MAX)'), 1, 2, '');
 
-                        -- **แก้ไขตรงนี้: เพิ่ม SUM() ครอบ ISNULL**
-                        SELECT @colsForSelect = STUFF((
-                            SELECT DISTINCT ', SUM(ISNULL(' + QUOTENAME(CAST(CreatedAt AS DATE)) + ', 0)) AS ' + QUOTENAME(FORMAT(CreatedAt, 'dd MMM')) 
-                            FROM MemberRewards 
-                            WHERE StationId = @StationId 
-                            FOR XML PATH(''), TYPE
-                        ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
+                                -- สร้างคอลัมน์ที่มี AS alias สำหรับใช้ใน GroupedData
+                                SELECT @colsForSelect = STUFF((
+                                    SELECT ', SUM(ISNULL(' + QUOTENAME(DateCol) + ', 0)) AS ' + QUOTENAME(DateLabel)
+                                    FROM (
+                                        SELECT DISTINCT 
+                                            CONVERT(NVARCHAR(10), CreatedAt, 120) AS DateCol,
+                                            FORMAT(CreatedAt, 'dd MMM') AS DateLabel
+                                        FROM MemberRewards 
+                                        WHERE StationId = @StationId 
+                                          AND CAST(CreatedAt AS DATE) BETWEEN @startDate AND @endDate
+                                    ) AS Dates
+                                    ORDER BY DateCol
+                                    FOR XML PATH(''), TYPE
+                                ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
-                        SET @query = N'
-                        WITH PivotedData AS (
-                            SELECT Tier, ' + @cols + '
-                            FROM (
-                               SELECT [dbo].[MemberRewards].Tier, CAST(UsedAt AS DATE) AS ActivityDate 
-                               FROM [dbo].[RewardHistory] 
-                               INNER JOIN [dbo].[MemberRewards] 
-                               ON [dbo].[RewardHistory].[MemberId] = [dbo].[MemberRewards].[MemberID] 
-                               WHERE [dbo].[RewardHistory].StationId = ' + CAST(@stationId AS VARCHAR) + '
-                               GROUP BY [dbo].[MemberRewards].Tier, [dbo].[RewardHistory].[MemberId], CAST(UsedAt AS DATE)
-                            ) AS SourceTable
-                            PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
-                        )
-                        SELECT 
-                            ISNULL(Tier, N''TOTAL MEMBER BY DAY'') AS Tier, 
-                            ' + @colsForSelect + ', 
-                            SUM(' + @totalCol + ') AS [TOTAL BY TIER]
-                        FROM PivotedData
-                        GROUP BY ROLLUP(Tier);';
+                                -- สร้างรายชื่อคอลัมน์ alias สำหรับ SELECT สุดท้าย
+                                SELECT @colsAlias = STUFF((
+                                    SELECT ',' + QUOTENAME(DateLabel)
+                                    FROM (
+                                        SELECT DISTINCT 
+                                            CONVERT(NVARCHAR(10), CreatedAt, 120) AS DateCol,
+                                            FORMAT(CreatedAt, 'dd MMM') AS DateLabel
+                                        FROM MemberRewards 
+                                        WHERE StationId = @StationId 
+                                          AND CAST(CreatedAt AS DATE) BETWEEN @startDate AND @endDate
+                                    ) AS Dates
+                                    ORDER BY DateCol
+                                    FOR XML PATH(''), TYPE
+                                ).value('.', 'NVARCHAR(MAX)'), 1, 1, '');
 
-                        EXEC sp_executesql @query;";
+                                IF @colsForSelect IS NULL SET @colsForSelect = '';
+                                IF @colsAlias IS NULL SET @colsAlias = '';
+
+                                SET @query = N'
+                                WITH PivotedData AS (
+                                    SELECT Tier, ' + @cols + '
+                                    FROM (
+                                       SELECT [dbo].[MemberRewards].Tier, CAST(UsedAt AS DATE) AS ActivityDate 
+                                       FROM [dbo].[RewardHistory] 
+                                       INNER JOIN [dbo].[MemberRewards] 
+                                       ON [dbo].[RewardHistory].[MemberId] = [dbo].[MemberRewards].[MemberID] 
+                                       WHERE [dbo].[RewardHistory].StationId = ' + CAST(@stationId AS VARCHAR) + '
+                                         AND CAST(UsedAt AS DATE) BETWEEN ''' + CONVERT(VARCHAR(10), @startDate, 120) + ''' AND ''' + CONVERT(VARCHAR(10), @endDate, 120) + '''
+                                       GROUP BY [dbo].[MemberRewards].Tier, [dbo].[RewardHistory].[MemberId], CAST(UsedAt AS DATE)
+                                    ) AS SourceTable
+                                    PIVOT (COUNT(ActivityDate) FOR ActivityDate IN (' + @cols + ')) AS pvt
+                                ),
+                                GroupedData AS (
+                                    SELECT 
+                                        ISNULL(Tier, N''TOTAL MEMBER BY DAY'') AS Tier, 
+                                        ' + @colsForSelect + ', 
+                                        SUM(' + @totalCol + ') AS [TOTAL BY TIER],
+                                        CASE 
+                                            WHEN Tier IS NULL THEN 1000
+                                            WHEN Tier = ''CRYSTAL'' THEN 1
+                                            WHEN Tier = ''NAVY'' THEN 2
+                                            WHEN Tier = ''SCARLET'' THEN 3
+                                            WHEN Tier = ''CROWN'' THEN 4
+                                            WHEN Tier = ''VEGA'' THEN 5
+                                            ELSE 999
+                                        END AS TierOrder
+                                    FROM PivotedData
+                                    GROUP BY ROLLUP(Tier)
+                                )
+                                SELECT 
+                                    Tier' + 
+                                    CASE WHEN @colsAlias <> '' THEN ',' + @colsAlias ELSE '' END + 
+                                    ',[TOTAL BY TIER]
+                                FROM GroupedData
+                                ORDER BY TierOrder;';
+
+                                EXEC sp_executesql @query;";
 
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync();
@@ -290,5 +373,5 @@ namespace EventCheckInDashboard.Pages
             }
         }
     }
-}
+
 }

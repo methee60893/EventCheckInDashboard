@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "JOYFINITY CELEBRATION The 1ts ANNIVERSARY - DIY KEY CHAIN KNITTING";
 }
-if (!string.IsNullOrEmpty(Model.ErrorMessage))
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
     <div class="alert alert-danger">@Model.ErrorMessage</div>
 }

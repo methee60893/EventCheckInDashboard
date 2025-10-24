@@ -172,7 +172,7 @@ else
                     type: 'bar',
                     data: stackedData,
                     options: {
-                        responsive: true, maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false, maintainAspectRatio: false, layout: { padding: { top: 30, bottom: 0, left: 10, right: 10 } },
                         plugins: {
                             legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 } } },
                             tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
@@ -194,8 +194,8 @@ else
                             }
                         },
                         scales: {
-                            x: { stacked: true, ticks: { font: { size: 12, family: 'Inter' } }, grid: { display: false } },
-                            y: { stacked: true, beginAtZero: true, max: 200, ticks: { stepSize: 50, font: { size: 12, family: 'Inter' } }, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                            y: { beginAtZero: true, max: 1000, position: 'left', ticks: { stepSize: 200, font: { size: 12, family: 'Inter' }, padding: 10 }, grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }, border: { display: false } },
+                            x: { position: 'bottom', ticks: { font: { size: 12, family: 'Inter' }, padding: 5 }, grid: { display: false, drawBorder: false }, border: { display: false } }
                         },
                         animation: { duration: 1500, easing: 'easeInOutQuart' }
                     }

@@ -66,7 +66,7 @@ else
                         {
                             var rowData = (IDictionary<string, object>)row;
                             var segmentName = rowData[Model.SegmentTableHeaders[0]].ToString();
-                            var rowClass = "row-" + segmentName.ToLower().Replace(" ", "-").Replace("กะรัต", "");
+                            var rowClass = "row-" + segmentName.ToLower().Replace(" ", "-");
                             if (segmentName.Contains("TOTAL")) { rowClass = "row-total"; }
 
                             <tr class="@rowClass">
@@ -172,7 +172,7 @@ else
                     type: 'bar',
                     data: stackedData,
                     options: {
-                        responsive: true, maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false, maintainAspectRatio: false, layout: { padding: { top: 30, bottom: 0, left: 10, right: 10 } },
                         plugins: {
                             legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 } } },
                             tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
@@ -194,8 +194,8 @@ else
                             }
                         },
                         scales: {
-                            x: { stacked: true, ticks: { font: { size: 12, family: 'Inter' } }, grid: { display: false } },
-                            y: { stacked: true, beginAtZero: true, max: 200, ticks: { stepSize: 50, font: { size: 12, family: 'Inter' } }, grid: { color: 'rgba(0, 0, 0, 0.05)' } }
+                            y: { beginAtZero: true, max: 1000, position: 'left', ticks: { stepSize: 200, font: { size: 12, family: 'Inter' }, padding: 10 }, grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }, border: { display: false } },
+                            x: { position: 'bottom', ticks: { font: { size: 12, family: 'Inter' }, padding: 5 }, grid: { display: false, drawBorder: false }, border: { display: false } }
                         },
                         animation: { duration: 1500, easing: 'easeInOutQuart' }
                     }
@@ -207,8 +207,11 @@ else
             if(pieDataJson) {
                 const pieApiData = JSON.parse(pieDataJson);
                 const tierColors = {
-                    'NAVY': 'rgba(59, 130, 246, 0.9)', 'SCARLET': 'rgba(239, 68, 68, 0.9)',
-                    'CROWN': 'rgba(156, 163, 175, 0.9)', 'VEGA': 'rgba(234, 179, 8, 0.9)'
+                     'NAVY': 'rgba(102, 126, 234, 0.9)',
+                     'SCARLET': 'rgba(255, 140, 66, 0.9)',
+                     'CROWN': 'rgba(184, 184, 184, 0.9)',
+                     'VEGA': 'rgba(255, 193, 7, 0.9)',
+                     'CRYSTAL': 'rgba(0, 191, 165, 0.9)' 
                 };
                 const pieData = {
                     labels: pieApiData.map(d => d.Tier),
