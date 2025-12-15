@@ -1,286 +1,197 @@
 ﻿@page
-@model IndexModel
+@using EventCheckInDashboard.Services
+@model EventCheckInDashboard.Pages.IndexModel
 @{
-    ViewData["Title"] = "JOYFINITY CELEBRATION The 1ts ANNIVERSARY - MAIN";
-}
-@if (!string.IsNullOrEmpty(Model.ErrorMessage))
-{
-    <div class="alert alert-danger">@Model.ErrorMessage</div>
-}
-else
-{
-    <p class="subtitle">จำนวนสมาชิกที่ร่วมกิจกรรมทั้ง 7 กิจกรรม</p>
+    ViewData["Title"] = "Dashboard Overview";
 
-    <div class="row">
-        <!-- Left Section -->
-        <div class="col-lg-6">
-            <!-- Info Box -->
-            <div class="info-box">
-                <div class="info-row">
-                    <span class="info-label">TARGET</span>
-                    <span class="info-value">2,190 สิทธิ์</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">ACTUAL</span>
-                <span class="info-value" id="actualValue">@Model.TotalActualRights.ToString("N0") สิทธิ์</span>
-                </div>
-            </div>
+    // ฟังก์ชันเลือกไอคอนให้เข้ากับกิจกรรม
+    string GetIconClass(string id) => id switch
+    {
+        "ginger" => "bi-house-heart-fill", // Gingerbread House
+        "luxe" => "bi-gem",                // Luxury/Gem
+        "power" => "bi-lightning-charge-fill", // Power
+        "giant" => "bi-robot",             // Giant/Machine
+        "chill" => "bi-cup-straw",         // Drink/Bar
+        "lucky" => "bi-stars",             // Gift/Magic
+        _ => "bi-gift-fill"
+    };
 
-            <!-- Bar Chart -->
-            <div class="chart-container">
-                <div class="chart-wrapper">
-                    <canvas id="barChart"></canvas>
-                </div>
-            </div>
+    // ฟังก์ชันเลือกสี Accent ของการ์ด
+    string GetCardColor(string id) => id switch
+    {
+        "ginger" => "border-warning",
+        "luxe" => "border-primary",
+        "power" => "border-danger",
+        "giant" => "border-info",
+        "chill" => "border-success",
+        "lucky" => "border-secondary",
+        _ => "border-primary"
+    };
+}
+
+<!-- Custom Style for Index Page -->
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #1c3f94 0%, #0d265e 100%);
+        color: white;
+        padding: 3rem 1rem;
+        border-radius: 0 0 20px 20px;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 15px rgba(28, 63, 148, 0.2);
+    }
+
+    .hero-title {
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #cfa86e; /* Gold */
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .btn-global {
+        background-color: white;
+        color: #1c3f94;
+        font-weight: 700;
+        border-radius: 50px;
+        padding: 10px 30px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+        .btn-global:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            background-color: #f8f9fa;
+            color: #153275;
+        }
+
+    .activity-card {
+        border: none;
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .activity-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 30px rgba(28, 63, 148, 0.15);
+        }
+
+    .card-top-bar {
+        height: 6px;
+        width: 100%;
+    }
+
+    .card-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        background-color: #f4f6f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: #1c3f94;
+        margin-bottom: 1rem;
+        transition: background-color 0.3s, color 0.3s;
+    }
+
+    .activity-card:hover .card-icon-wrapper {
+        background-color: #1c3f94;
+        color: #cfa86e;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #333;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #888;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .btn-view-report {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 10px;
+        background-color: #f8f9fa;
+        color: #555;
+        border: 1px solid #eee;
+        transition: all 0.2s;
+    }
+
+        .btn-view-report:hover {
+            background-color: #1c3f94;
+            color: white;
+            border-color: #1c3f94;
+        }
+</style>
+
+<!-- Hero Header -->
+<div class="container-fluid p-0">
+    <div class="hero-section text-center">
+        <div class="container">
+            <h1 class="display-4 hero-title mb-2 text-uppercase">The Power Giftival</h1>
+            <p class="lead mb-4" style="opacity: 0.9;">Real-time Event Monitoring & Analytics Dashboard</p>
+
+            <a asp-page="/GlobalDashboard" class="btn btn-global">
+                <i class="bi bi-pie-chart-fill me-2"></i> View Global Dashboard
+            </a>
         </div>
+    </div>
+</div>
 
-        <!-- Right Section -->
-        <div class="col-lg-6">
-            <!-- 3D Pie Chart -->
+<!-- Main Content -->
+<div class="container pb-5" style="margin-top: -60px;">
+    <div class="row g-4">
+        @foreach (var activity in Model.Activities)
+        {
+            var iconClass = GetIconClass(activity.Id);
+            var colorClass = GetCardColor(activity.Id).Replace("border-", "bg-"); // แปลง border เป็น bg สำหรับ top bar
 
-            <div class="chart-filter-container" style="text-align: right; margin-bottom: 10px;">
-                <label for="pieChartFilter" style="margin-right: 5px; font-weight: 500;">แสดงข้อมูล:</label>
-                <select id="pieChartFilter" class="form-control form-control-sm" style="display: inline-block; width: auto; border-radius: 8px;">
-                    <option value="Summary">Summary (ภาพรวม)</option>
-                    <option value="24-Oct">24-Oct</option>
-                    <option value="25-Oct">25-Oct</option>
-                    <option value="26-Oct">26-Oct</option>
-                </select>
-            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="activity-card">
+                    <!-- Top Color Bar -->
+                    <div class="card-top-bar @colorClass"></div>
 
-            <div class="pie-container">
-                <div class="pie-wrapper">
-                    <div class="pie-chart-3d">
-                        <canvas id="pieChart"></canvas>
+                    <div class="p-4 d-flex flex-column flex-grow-1 text-center align-items-center">
+                        <!-- Icon -->
+                        <div class="card-icon-wrapper">
+                            <i class="bi @iconClass"></i>
+                        </div>
+
+                        <!-- Title -->
+                        <h5 class="fw-bold text-uppercase mb-3" style="color: #1c3f94; letter-spacing: 0.5px;">
+                            @activity.Name
+                        </h5>
+
+                        <!-- Stat -->
+                        <div class="mb-4">
+                            <div class="stat-value">@activity.TotalRegistrations.ToString("N0")</div>
+                            <div class="stat-label">Total Check-ins</div>
+                        </div>
+
+                        <!-- Action -->
+                        <div class="mt-auto w-100">
+                            <a asp-page="/ActivityReport" asp-route-id="@activity.Id" class="btn btn-view-report w-100">
+                                View Detail Report <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
-            <p class="section-title">
-                จำนวนสมาชิกแต่ละ TIER ทั้งหมดที่ร่วมกิจกรรม
-            </p>
-
-            <!-- Table -->
-            <div class="table-container">
-                <table class="table table-bordered tier-table">
-                    <thead>
-                        <tr>
-                            @foreach (var header in Model.TableHeaders)
-                            {
-                                <!-- ปรับปรุง header ให้แสดงผลถูกต้อง -->
-                                if (header == "Tier")
-                                {
-                                    <th></th>
-                                }
-                                else if (header.ToUpper().Contains("TOTAL BY TIER"))
-                                {
-                                    <th>TOTAL<br>BY TIER</th>
-                                }
-                                else
-                                {
-                                    <th>@header.ToUpper()</th>
-                                }
-                            }
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var row in Model.TableData)
-                        {
-                            var rowData = (IDictionary<string, object>)row;
-                            var tierName = rowData[Model.TableHeaders[0]].ToString();
-
-                            <!-- กำหนด class สำหรับแต่ละแถว -->
-                            var rowClass = "tier-" + tierName.ToLower().Replace(" ", "-").Replace("_", "-");
-                            if (tierName.Contains("TOTAL MEMBER"))
-                            {
-                                rowClass = "tier-total";
-                            }
-
-                            <tr class="@rowClass">
-                                @foreach (var header in Model.TableHeaders)
-                                {
-                                    var cellValue = rowData[header];
-
-                                    <!-- จัดรูปแบบการแสดงผลของเซลล์ -->
-                                    if (header == "Tier")
-                                    {
-                                        <td><strong>@Html.Raw(tierName.Replace("TOTAL MEMBER BY DAY", "TOTAL<br>MEMBER<br>BY DAY"))</strong></td>
-                                    }
-                                    else if (header.ToUpper().Contains("TOTAL BY TIER"))
-                                    {
-                                        var totalClass = tierName.Contains("TOTAL MEMBER") ? "total-value" : "green-total";
-                                        <td class="@totalClass">@cellValue</td>
-                                    }
-                                    else
-                                    {
-                                        <td>@(cellValue.ToString() == "0" ? "" : cellValue)</td>
-                                    }
-                                }
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-}
-@section Scripts {
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-<script>
-          document.addEventListener('DOMContentLoaded', function () {
-
-            Chart.register(ChartDataLabels);
-
-            // ================== BAR CHART SETUP ==================
-            const barDataJson = '@Html.Raw(Model.BarChartDataJson)';
-            if (barDataJson) {
-                const barData = JSON.parse(barDataJson);
-                const barCtx = document.getElementById('barChart').getContext('2d');
-                const barChart = new Chart(barCtx, {
-                    type: 'bar',
-                    data: barData,
-                    options: {
-                        responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, bottom: 0, left: 10, right: 10 } },
-                        plugins: {
-                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { size: 13, family: 'Inter', weight: 500 } } },
-                            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' } },
-                            datalabels: {
-                                display: true,
-                                anchor: 'end', 
-                                align: 'top',  
-                                color: '#444', 
-                                font: {
-                                    family: 'Inter',
-                                    weight: 500,
-                                    size: 11
-                                },
-                                formatter: (value, context) => {
-                                    return value > 0 ? value.toLocaleString('en-US') : '';
-                                }
-                            }
-                        },
-                        scales: {
-                            y: { beginAtZero: true, max: 1000, position: 'left', ticks: { stepSize: 200, font: { size: 12, family: 'Inter' }, padding: 10 }, grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false }, border: { display: false } },
-                            x: { position: 'bottom', ticks: { font: { size: 12, family: 'Inter' }, padding: 5 }, grid: { display: false, drawBorder: false }, border: { display: false } }
-                        },
-                        animation: { duration: 1500, easing: 'easeInOutQuart' }
-                    }
-                });
-            }
-
-
-                    // ================== PIE CHART (DOUGHNUT) SETUP ==================
-        // 1. เปลี่ยนชื่อตัวแปรเป็น PieChartDataStoreJson (ตาม C#)
-        const pieDataStoreJson = '@Html.Raw(Model.PieChartDataStoreJson)';
-
-        // 2. ประกาศตัวแปร pieChart ไว้ด้านนอก
-        let pieChart;
-
-        if (pieDataStoreJson) {
-            // 3. Parse JSON ที่มีข้อมูลทั้งหมด (Summary + Daily)
-            const allPieData = JSON.parse(pieDataStoreJson);
-
-            // (ผมเพิ่ม 'CRYSTAL' เข้าไปให้ เผื่อมีข้อมูลนี้)
-            const tierColors = {
-                'NAVY': 'rgba(102, 126, 234, 0.9)',
-                'SCARLET': 'rgba(255, 140, 66, 0.9)',
-                'CROWN': 'rgba(184, 184, 184, 0.9)',
-                'VEGA': 'rgba(255, 193, 7, 0.9)',
-                'CRYSTAL': 'rgba(0, 191, 165, 0.9)' // สีสำหรับ CRYSTAL (ปรับแก้ได้)
-            };
-
-            const pieCtx = document.getElementById('pieChart').getContext('2d');
-
-            // 4. สร้างฟังก์ชันสำหรับอัปเดต Pie Chart
-            function updatePieChart(dataKey) {
-                // 5. ดึงข้อมูลชุดที่เลือก (เช่น "Summary" หรือ "17-Oct")
-                // ถ้าไม่มีข้อมูล (เช่น วันที่ 19-Oct ไม่มีคน) ให้ใช้ Array ว่าง []
-                const pieApiData = allPieData[dataKey] || [];
-
-                const pieData = {
-                    labels: pieApiData.map(d => d.Tier),
-                    datasets: [{
-                        data: pieApiData.map(d => d.TotalMembers),
-                        backgroundColor: pieApiData.map(d => tierColors[d.Tier.toUpperCase()] || '#6c757d'),
-                        borderWidth: 4, borderColor: '#fff', hoverOffset: 15, hoverBorderWidth: 5
-                    }]
-                };
-
-                // 6. ตรวจสอบว่า Chart ถูกสร้างหรือยัง
-                if (!pieChart) {
-                    // ถ้ายังไม่ได้สร้าง: ให้สร้างใหม่
-                    pieChart = new Chart(pieCtx, {
-                        type: 'doughnut',
-                        data: pieData, // ใช้ข้อมูลชุดแรก
-                        options: {
-                            responsive: true, maintainAspectRatio: false, cutout: '45%',
-                            plugins: {
-                                legend: { position: 'right', labels: { padding: 20, font: { size: 13, family: 'Inter', weight: 500 }, usePointStyle: true, pointStyle: 'circle' } },
-                                tooltip: {
-                                    backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, cornerRadius: 8, titleFont: { size: 14, family: 'Inter' }, bodyFont: { size: 13, family: 'Inter' },
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.label || 'Unknown Tier';
-                                            let value = context.parsed;
-                                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            let percentage = total > 0 ? ((value / total) * 100).toFixed(0) : 0;
-                                            return label + ': ' + value + ' คน (' + percentage + '%)';
-                                        }
-                                    }
-                                },
-                                datalabels: {
-                                    display: true,
-                                    color: '#333',
-                                    font: { family: 'Inter', weight: 'bold', size: 13 },
-                                    formatter: (value, context) => {
-                                        const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                        const percentage = (value / total) * 100;
-                                        return percentage > 1 ? percentage.toFixed(0) + '%' : '';
-                                    }
-                                }
-                            },
-                            animation: { animateRotate: true, animateScale: true, duration: 2000, easing: 'easeInOutQuart' }
-                        }
-                    });
-                } else {
-                    // ถ้าสร้างแล้ว: ให้อัปเดตข้อมูลแล้วสั่ง .update()
-                    pieChart.data = pieData;
-                    pieChart.update();
-                }
-            }
-
-            // 7. เพิ่ม Event Listener ให้กับ Dropdown
-            const filterSelect = document.getElementById('pieChartFilter');
-            if (filterSelect) {
-                filterSelect.addEventListener('change', function(e) {
-                    updatePieChart(e.target.value); // เรียกฟังก์ชันอัปเดตเมื่อมีการเปลี่ยนแปลง
-                });
-            }
-
-            // 8. โหลด Chart ครั้งแรกด้วยข้อมูล "Summary"
-            updatePieChart('Summary');
         }
-
-            // 3D hover effect for pie chart
-            const pieWrapper = document.querySelector('.pie-wrapper');
-            if(pieWrapper) {
-                pieWrapper.addEventListener('mousemove', (e) => {
-                    const rect = pieWrapper.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    const centerX = rect.width / 2;
-                    const centerY = rect.height / 2;
-                    const rotateY = (x - centerX) / 20;
-                    const rotateX = -(y - centerY) / 20;
-                    pieWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
-                });
-
-                pieWrapper.addEventListener('mouseleave', () => {
-                    pieWrapper.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0px)';
-                });
-            }
-
-            document.getElementById("a_main").classList.add("active");
-        });
-    
-</script>
-}
+    </div>
+</div>

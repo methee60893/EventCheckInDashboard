@@ -15,35 +15,32 @@
     <div class="navbar-container">
         <nav class="navbar navbar-expand-lg custom-navbar">
             <div class="container-fluid">
-                <a class="navbar-brand" href="#">DASHBOARD KPCOB JOYFINITY CELEBRATION</a>
+                <a class="navbar-brand" href="#">DASHBOARD KING POWER The Giftival</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
-                            @* <a id="a_main" class="nav-link" href="/Index">Overview</a> *@
-                            <a id="a_main" class="nav-link" href="/dashboardevent/Index">Overview</a>
+                            <a id="a_main" class="nav-link" href="/Index">Overview</a>
                         </li>
                         <li class="nav-item">
-                            @* <a id="a_stpw" class="nav-link" href="/Spinwheel">SPIN THE POWER WHEEL</a> *@
-                            <a id="a_stpw" class="nav-link" href="/dashboardevent/Spinwheel">SPIN THE POWER WHEEL</a>
+                            <a id="a_inst" class="nav-link" href="/ActivityReport/ginger">GINGER BREAD</a>
                         </li>
                         <li class="nav-item">
-                            @* <a id="a_tpwr" class="nav-link" href="/Thepowerring">THE POWER RING</a> *@
-                            <a id="a_tpwr" class="nav-link" href="/dashboardevent/Thepowerring">THE POWER RING</a>
+                            <a id="a_aird" class="nav-link" href="/ActivityReport/luxe">THE LUXE CLAW</a>
                         </li>
                         <li class="nav-item">
-                            @* <a id="a_drtpw" class="nav-link" href="/Dropthepower">DROP THE POWER</a> *@
-                            <a id="a_drtpw" class="nav-link" href="/dashboardevent/Dropthepower">DROP THE POWER</a>
+                            <a id="a_diybag" class="nav-link" href="/ActivityReport/power">THE POWER CLAW</a>
                         </li>
                         <li class="nav-item">
-                            @* <a id="a_tpwps" class="nav-link" href="/Thepowerpusher">THE POWER PUSHER</a> *@
-                            <a id="a_tpwps" class="nav-link" href="/dashboardevent/Thepowerpusher">THE POWER PUSHER</a>
+                            <a id="a_candle" class="nav-link" href="/ActivityReport/giant">THE GIANT CLAW</a>
                         </li>
                         <li class="nav-item">
-                            @* <a id="a_exapo" class="nav-link" href="/Apo">EXCLUSIVE CHILL & TALK WITH APO</a> *@
-                            <a id="a_exapo" class="nav-link" href="/dashboardevent/Apo">EXCLUSIVE CHILL & TALK WITH APO</a>
+                            <a id="a_diykey" class="nav-link" href="/ActivityReport/chill">GIFTIVAL CHILL BAR</a>
+                        </li>
+                        <li class="nav-item">
+                            <a id="a_matcha" class="nav-link" href="/ActivityReport/lucky">LUCKY GIFTMAS</a>
                         </li>
                     </ul>
                 </div>
@@ -51,8 +48,8 @@
         </nav>
     </div>
     <div class="dashboard-container">
-       
-            @RenderBody()
+
+        @RenderBody()
 
     </div>
     @await RenderSectionAsync("Scripts", required: false)

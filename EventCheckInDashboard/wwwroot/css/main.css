@@ -1,0 +1,98 @@
+﻿:root {
+    --kp-blue: #1c3f94;
+    --kp-gold: #cfa86e;
+    --kp-light-gold: #f4e6c8;
+    --bg-gray: #f8f9fa;
+    --text-dark: #333;
+    --success: #28a745;
+}
+
+body {
+    background-color: var(--bg-gray);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+}
+
+.kp-navbar {
+    background-color: var(--kp-blue);
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.kp-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--kp-gold);
+}
+
+.kp-card {
+    background: white;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+    height: 100%;
+}
+
+    .kp-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+
+.kp-card-header {
+    background-color: transparent;
+    border-bottom: 2px solid var(--kp-light-gold);
+    font-weight: bold;
+    color: var(--kp-blue);
+    font-size: 1.1rem;
+    padding: 1.25rem;
+}
+
+.kp-card-body {
+    padding: 1.5rem;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--kp-blue);
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.btn-kp-primary {
+    background-color: var(--kp-blue);
+    color: white;
+    border: 1px solid var(--kp-blue);
+}
+
+    .btn-kp-primary:hover {
+        background-color: #153275;
+        color: var(--kp-gold);
+    }
+
+.table-kp thead {
+    background-color: var(--kp-blue);
+    color: white;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-open {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-closed {
+    background-color: #f8d7da;
+    color: #721c24;
+}

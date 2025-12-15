@@ -1,0 +1,190 @@
+﻿@page
+@using EventCheckInDashboard.Services
+@model EventCheckInDashboard.Pages.GlobalDashboardModel
+@{
+    ViewData["Title"] = "Global Overview";
+}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid py-4 px-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a asp-page="/Index" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Back to Menu</a>
+            <h2 class="fw-bold" style="color: var(--kp-blue);">GLOBAL OVERVIEW: All Activities</h2>
+            <span class="badge bg-warning text-dark">GRAND TOTAL REPORT</span>
+        </div>
+
+        <div class="d-flex gap-3">
+            <div class="kp-card px-4 py-2 text-center border-warning border-2">
+                <small class="text-muted d-block">TOTAL QUOTA (ALL)</small>
+                <span class="fs-4 fw-bold">@Model.TotalQuotaAll.ToString("N0")</span>
+            </div>
+            <div class="kp-card px-4 py-2 text-center border-success border-2">
+                <small class="text-muted d-block">TOTAL CHECK-IN</small>
+                <span class="fs-4 fw-bold text-success">@Model.TotalUsedAll.ToString("N0")</span>
+            </div>
+            <div class="kp-card px-4 py-2 text-center bg-light">
+                <small class="text-muted d-block">REMAINING</small>
+                <span class="fs-4 fw-bold text-secondary">@((Model.TotalQuotaAll - Model.TotalUsedAll).ToString("N0"))</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- LEFT COLUMN: Traffic & Sources -->
+        <div class="col-lg-7">
+            <div class="kp-card h-100 p-3">
+                <h5 class="kp-card-header mb-3"><i class="bi bi-bar-chart-fill me-2"></i>Overall Daily Traffic</h5>
+
+                <div class="mb-4" style="height: 300px;">
+                    <canvas id="dailyChart"></canvas>
+                </div>
+
+                <!-- Sources Table (Transposed) -->
+                <h6 class="text-muted fw-bold mb-2">Overall Redemption Breakdown (Sources)</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover text-center align-middle" style="font-size: 0.9rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start ps-3" style="min-width: 150px;">Source</th>
+                                @foreach (var day in Model.AggregatedDailyStats)
+                                {
+                                    <th style="min-width: 60px;">@day.DateDisplay</th>
+                                }
+                                <th class="bg-light fw-bold">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var type in Model.RedemptionHeaders)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-start ps-3">@type</td>
+                                    @foreach (var day in Model.AggregatedDailyStats)
+                                    {
+                                        var val = day.RedemptionCounts.ContainsKey(type) ? day.RedemptionCounts[type] : 0;
+                                        <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                    }
+                                    <td class="fw-bold bg-light">@Model.TotalRedemptionStats[type].ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light fw-bold" style="border-top: 2px solid #dee2e6;">
+                            <tr>
+                                <td class="text-start ps-3">GRAND TOTAL</td>
+                                @foreach (var day in Model.AggregatedDailyStats)
+                                {
+                                    <td>@day.TotalCheckIn.ToString("N0")</td>
+                                }
+                                <td class="text-success">@Model.TotalUsedAll.ToString("N0")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Tiers -->
+        <div class="col-lg-5">
+            <div class="kp-card h-100 p-3">
+                <h5 class="kp-card-header mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Overall Member Tier Analysis</h5>
+
+                <div class="d-flex justify-content-center mb-4" style="height: 250px;">
+                    <canvas id="tierChart"></canvas>
+                </div>
+
+                <h6 class="text-muted fw-bold mb-2">Overall Tier Breakdown</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered table-hover text-center align-middle" style="font-size: 0.85rem;">
+                        <thead style="background-color: var(--kp-blue); color: white;">
+                            <tr>
+                                <th class="text-start ps-3">Tier</th>
+                                @foreach (var day in Model.AggregatedDailyStats)
+                                {
+                                    <th>@day.Date.Day</th>
+                                }
+                                <th class="bg-warning text-dark">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tier in Model.TierHeaders)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-start ps-3" style="color: @EventService.TierColors[tier]">@tier</td>
+                                    @foreach (var day in Model.AggregatedDailyStats)
+                                    {
+                                        var val = day.TierCounts.ContainsKey(tier) ? day.TierCounts[tier] : 0;
+                                        <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                    }
+                                    <td class="fw-bold bg-light">@Model.TotalTierStats[tier].ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dates = @Html.Raw(Json.Serialize(Model.AggregatedDailyStats.Select(d => d.DateDisplay)));
+        const totals = @Html.Raw(Json.Serialize(Model.AggregatedDailyStats.Select(d => d.TotalCheckIn)));
+
+        const ctxDaily = document.getElementById('dailyChart').getContext('2d');
+        new Chart(ctxDaily, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [{
+                    label: 'Total Check-ins',
+                    data: totals,
+                    backgroundColor: '#1c3f94',
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        const tierLabels = @Html.Raw(Json.Serialize(Model.TotalTierStats.Keys));
+        const tierData = @Html.Raw(Json.Serialize(Model.TotalTierStats.Values));
+        const tierColors = ['#1c3f94', '#c21f30', '#cfa86e', '#7d7d7d'];
+
+        const ctxTier = document.getElementById('tierChart').getContext('2d');
+        new Chart(ctxTier, {
+            type: 'doughnut',
+            data: {
+                labels: tierLabels,
+                datasets: [{ data: tierData, backgroundColor: tierColors, hoverOffset: 4 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+    });
+</script>
+
+<style>
+    .kp-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border: 1px solid #eee;
+    }
+
+    .kp-card-header {
+        color: #1c3f94;
+        font-weight: bold;
+        border-bottom: 2px solid #f4e6c8;
+        padding-bottom: 10px;
+    }
+
+    .table th {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .opacity-25 {
+        opacity: 0.25;
+    }
+</style>
