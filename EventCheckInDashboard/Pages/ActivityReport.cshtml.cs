@@ -30,9 +30,9 @@ namespace EventCheckInDashboard.Pages
         public List<string> RedemptionHeaders { get; set; } // หัวตารางจะเปลี่ยนไปตามกิจกรรม
         public List<string> TierHeaders { get; set; }
 
-        public ActivityReportModel()
+        public ActivityReportModel(EventService service)
         {
-            _service = new EventService();
+            _service = service;
         }
 
         public IActionResult OnGet(string id)
@@ -66,6 +66,13 @@ namespace EventCheckInDashboard.Pages
             }
 
             return Page();
+        }
+
+        public IActionResult OnGetExport(string id)
+        {
+            var csvBytes = _service.ExportToCsv(id);
+            string fileName = $"Activity_{id}_{DateTime.Now:yyyyMMddHHmm}.csv";
+            return File(csvBytes, "text/csv", fileName);
         }
     }
 }

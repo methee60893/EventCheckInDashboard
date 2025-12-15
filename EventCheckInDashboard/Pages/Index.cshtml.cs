@@ -1,5 +1,7 @@
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using EventCheckInDashboard.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,9 +13,9 @@ namespace EventCheckInDashboard.Pages
         public List<ActivityInfo> Activities { get; set; }
         public int GrandTotalRegistrations { get; set; } // เพิ่มยอดรวมทั้งงานไว้โชว์หน้าแรกได้
 
-        public IndexModel()
+        public IndexModel(EventService service)
         {
-            _service = new EventService();
+            _service = service;
         }
 
         public void OnGet()
@@ -34,5 +36,6 @@ namespace EventCheckInDashboard.Pages
                 GrandTotalRegistrations += act.TotalRegistrations;
             }
         }
+        
     }
 }

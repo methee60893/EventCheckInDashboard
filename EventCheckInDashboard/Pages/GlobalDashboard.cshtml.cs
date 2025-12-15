@@ -25,9 +25,9 @@ namespace EventCheckInDashboard.Pages
         public List<string> RedemptionHeaders { get; set; }
         public List<string> TierHeaders { get; set; }
 
-        public GlobalDashboardModel()
+        public GlobalDashboardModel(EventService service)
         {
-            _service = new EventService();
+            _service = service;
         }
 
         public void OnGet()
@@ -99,6 +99,12 @@ namespace EventCheckInDashboard.Pages
             {
                 TotalRedemptionStats[type] = AggregatedDailyStats.Sum(d => d.RedemptionCounts[type]);
             }
+        }
+        public IActionResult OnGetExportAll()
+        {
+            // ส่ง empty string หรือ code พิเศษเพื่อบอกว่าเอาทั้งหมด
+            var csvBytes = _service.ExportToCsv("all");
+            return File(csvBytes, "text/csv", $"All_Events_Data_{DateTime.Now:yyyyMMdd}.csv");
         }
     }
 }

@@ -19,7 +19,14 @@
                 </ol>
             </nav>
         </div>
+        <div class="d-flex gap-2 align-items-center">
+            <a asp-page-handler="Export" asp-route-id="@Model.Id" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>Export CSV
+            </a>
 
+            <div class="d-flex gap-3">
+            </div>
+        </div>
         <!-- KPI Cards -->
         <div class="d-flex gap-3">
             <div class="kp-stat-box border-warning">

@@ -15,7 +15,13 @@
             <h2 class="fw-bold" style="color: var(--kp-blue);">GLOBAL OVERVIEW: All Activities</h2>
             <span class="badge bg-warning text-dark">GRAND TOTAL REPORT</span>
         </div>
-
+         <div class="d-flex gap-2 align-items-center">
+            <a asp-page-handler="ExportAll" class="btn btn-global ms-2 text-success">
+                <i class="bi bi-download me-2"></i> Export All Data
+            </a>
+            <div class="d-flex gap-3">
+            </div>
+        </div>
         <div class="d-flex gap-3">
             <div class="kp-card px-4 py-2 text-center border-warning border-2">
                 <small class="text-muted d-block">TOTAL QUOTA (ALL)</small>
