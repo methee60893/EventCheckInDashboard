@@ -1,4 +1,5 @@
 ﻿using EventCheckInDashboard.Data;
+using EventCheckInDashboard.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -142,26 +143,33 @@ namespace EventCheckInDashboard.Services
             var result = new List<DailyDetail>();
             int dbActivityId = GetDbActivityId(activityId);
 
-            // 1. ดึงข้อมูลจริงจาก DB
-            var query = _context.EventTransactions.AsQueryable();
+            var transactions = new List<EventTransaction>();
 
-            if (dbActivityId > 0)
+            try
             {
-                query = query.Where(t => t.ActivityID == dbActivityId);
+                var query = _context.EventTransactions.AsQueryable();
+                if (dbActivityId > 0) query = query.Where(t => t.ActivityID == dbActivityId);
+
+                if (filterDate.HasValue)
+                {
+                    query = query.Where(t => t.EventDate.Date == filterDate.Value.Date);
+                }
+
+                // ดึงข้อมูลมาประมวลผล (หรือจะ GroupBy ใน SQL เลยก็ได้หากข้อมูลเยอะมาก)
+                transactions = query.Select(t => new EventTransaction
+                {
+                    EventDate = t.EventDate,
+                    PaymentMethod = t.PaymentMethod,
+                    MemberTier = t.MemberTier,
+                    RightsEarned = t.RightsEarned
+                }).ToList();
+
+            }catch (Exception ex)
+            {
+                // Log error (ถ้ามีระบบ Logging)
+                Console.WriteLine($"Error fetching data: {ex.Message}");
             }
 
-            if (filterDate.HasValue)
-            {
-                query = query.Where(t => t.EventDate.Date == filterDate.Value.Date);
-            }
-
-            // ดึงข้อมูลมาประมวลผล (หรือจะ GroupBy ใน SQL เลยก็ได้หากข้อมูลเยอะมาก)
-            var transactions = query.Select(t => new {
-                t.EventDate,
-                t.PaymentMethod,
-                t.MemberTier,
-                t.RightsEarned
-            }).ToList();
 
             // 2. กำหนดช่วงเวลา (ตาม Requirement เดิม)
             DateTime startDate = new DateTime(2025, 12, 18);

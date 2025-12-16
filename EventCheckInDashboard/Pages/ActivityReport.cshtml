@@ -8,7 +8,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <div class="container-fluid py-4 px-4">
-    <!-- Header Area -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold text-primary mb-0">@Model.CurrentActivityName</h2>
@@ -19,84 +18,131 @@
                 </ol>
             </nav>
         </div>
-        <div class="d-flex gap-2 align-items-center">
-            <a asp-page-handler="Export" asp-route-id="@Model.Id" class="btn btn-outline-success">
-                <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>Export CSV
+        <div class="d-flex gap-3 align-items-center">
+            <form method="get" class="d-flex align-items-center">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted">
+                        <i class="bi bi-calendar-event"></i>
+                    </span>
+                    <select asp-for="FilterDate" asp-items="Model.DateList"
+                            class="form-select border-start-0 shadow-none"
+                            style="min-width: 200px; cursor: pointer;"
+                            onchange="this.form.submit()">
+                    </select>
+                </div>
+            </form>
+            <a asp-page-handler="Export" asp-route-id="@Model.Id" class="btn btn-success text-white shadow-sm">
+                <i class="bi bi-download me-2"></i>Export CSV
             </a>
-
-            <div class="d-flex gap-3">
-            </div>
         </div>
-        <!-- KPI Cards -->
         <div class="d-flex gap-3">
-            <div class="kp-stat-box border-warning">
-                <small>TOTAL QUOTA</small>
-                <span>@Model.TotalQuota.ToString("N0")</span>
+            <div class="kp-card px-4 py-2 text-center border-warning border-2">
+                <small class="text-muted d-block">TOTAL QUOTA</small>
+                <span class="fs-4 fw-bold">@Model.TotalQuota.ToString("N0")</span>
             </div>
-            <div class="kp-stat-box border-success">
-                <small>USED</small>
-                <span class="text-success">@Model.TotalUsed.ToString("N0")</span>
+            <div class="kp-card px-4 py-2 text-center border-success border-2">
+                <small class="text-muted d-block">USED (@(Model.FilterDate.HasValue? Model.FilterDate.Value.ToString("dd MMM") : "All"))</small>
+                <span class="fs-4 fw-bold text-success">@Model.TotalUsed.ToString("N0")</span>
             </div>
-            <div class="kp-stat-box bg-light border-0">
-                <small>REMAINING</small>
-                <span class="text-muted">@((Model.TotalQuota - Model.TotalUsed).ToString("N0"))</span>
+            <div class="kp-card px-4 py-2 text-center bg-light">
+                <small class="text-muted d-block">REMAINING</small>
+                <span class="fs-4 fw-bold text-secondary">@((Model.TotalQuota - Model.TotalUsed).ToString("N0"))</span>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="row g-4">
-
-        <!-- LEFT: Traffic & Redemption Source -->
         <div class="col-lg-7">
             <div class="kp-card h-100 p-3">
                 <h5 class="kp-card-header mb-3"><i class="bi bi-bar-chart-fill me-2"></i>Daily Traffic & Sources</h5>
-
                 <div class="mb-4" style="height: 300px;">
                     <canvas id="dailyChart"></canvas>
                 </div>
-
-                <!-- Redemption Source Table (Dynamic Headers) -->
-                <h6 class="text-muted fw-bold mb-2">Redemption Breakdown (Sources)</h6>
+                <!-- Sources Table (Transposed) -->
+                <h6 class="text-muted fw-bold mb-2">Overall Redemption Breakdown (Sources)</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-hover text-center align-middle" style="font-size: 0.9rem;">
                         <thead class="table-light">
                             <tr>
                                 <th class="text-start ps-3" style="min-width: 150px;">Source</th>
-                                @foreach (var day in Model.DailyStats)
+
+                                @if (Model.DailyStats != null && Model.DailyStats.Any())
                                 {
-                                    <th style="min-width: 60px;" class="@(day.IsActiveDay ? "" : "bg-secondary text-white")">@day.DateDisplay</th>
+                                    @foreach (var day in Model.DailyStats)
+                                    {
+                                        
+                                        <th style="min-width: 60px;" class="@(day.IsActiveDay ? "" : "bg-secondary text-white")">
+                                            @day.DateDisplay
+                                        </th>
+                                    }
+                                }
+                                else
+                                {
+                                    <th>-</th>
                                 }
                                 <th class="bg-light fw-bold">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var type in Model.RedemptionHeaders)
+                            @if (Model.RedemptionHeaders != null)
                             {
-                                <tr>
-                                    <td class="fw-bold text-start ps-3">@type</td>
-                                    @foreach (var day in Model.DailyStats)
-                                    {
-                                        if (day.IsActiveDay)
+                                @foreach (var type in Model.RedemptionHeaders)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-start ps-3">@type</td>
+
+                                        @if (Model.DailyStats != null && Model.DailyStats.Any())
                                         {
-                                            var val = day.RedemptionCounts.ContainsKey(type) ? day.RedemptionCounts[type] : 0;
-                                            <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                            @foreach (var day in Model.DailyStats)
+                                            {
+                                                if (day.IsActiveDay)
+                                                {
+                                                    // ดึงค่าแบบปลอดภัย (Defensive)
+                                                    int val = 0;
+                                                    if (day.RedemptionCounts != null && day.RedemptionCounts.ContainsKey(type))
+                                                    {
+                                                        val = day.RedemptionCounts[type];
+                                                    }
+
+                                                    <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="bg-light text-muted small">Closed</td>
+                                                }
+                                            }
                                         }
                                         else
                                         {
-                                            <td class="bg-light text-muted small">Closed</td>
+                                            <td class="text-muted">-</td>
                                         }
-                                    }
-                                    <td class="fw-bold bg-light">@Model.TotalRedemptionStats[type].ToString("N0")</td>
-                                </tr>
+
+                                        @{
+                                            int totalVal = 0;
+
+                                            if (Model.TotalRedemptionStats != null && Model.TotalRedemptionStats.ContainsKey(type))
+                                            {
+                                                totalVal = Model.TotalRedemptionStats[type];
+                                            }
+                                        }
+                                        <td class="fw-bold bg-light">@totalVal.ToString("N0")</td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                         <tfoot class="table-light fw-bold" style="border-top: 2px solid #dee2e6;">
                             <tr>
-                                <td class="text-start ps-3">GRAND TOTAL</td>
-                                @foreach (var day in Model.DailyStats)
+                                <td class="text-start ps-3">TOTAL</td>
+                                @if (Model.DailyStats != null && Model.DailyStats.Any())
                                 {
-                                    <td>@(day.IsActiveDay? day.TotalCheckIn.ToString("N0") : "-")</td>
+                                    @foreach (var day in Model.DailyStats)
+                                    {
+                                        <td>@(day.IsActiveDay? day.TotalCheckIn.ToString("N0") : "-")</td>
+                                    }
+                                }
+                                else
+                                {
+                                    <td>0</td>
                                 }
                                 <td class="text-success">@Model.TotalUsed.ToString("N0")</td>
                             </tr>
@@ -106,7 +152,6 @@
             </div>
         </div>
 
-        <!-- RIGHT: Tier Analysis -->
         <div class="col-lg-5">
             <div class="kp-card h-100 p-3">
                 <h5 class="kp-card-header mb-3"><i class="bi bi-pie-chart-fill me-2"></i>Member Tier Analysis</h5>
@@ -115,39 +160,77 @@
                     <canvas id="tierChart"></canvas>
                 </div>
 
-                <!-- Transposed Tier Table -->
-                <h6 class="text-muted fw-bold mb-2">Tier Breakdown</h6>
+                <h6 class="text-muted fw-bold mb-2">Tier Breakdown (Grand Total)</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered table-hover text-center align-middle" style="font-size: 0.85rem;">
-                        <thead style="background-color: var(--kp-blue); color: white;">
+                        <thead style="background-color: #1c3f94; color: white;">
                             <tr>
                                 <th class="text-start ps-3">Tier</th>
-                                @foreach (var day in Model.DailyStats)
+                                @if (Model.DailyStats != null && Model.DailyStats.Any())
                                 {
-                                    <th>@day.Date.Day</th>
+                                    @foreach (var day in Model.DailyStats)
+                                    {
+                                        <th>@day.Date.Day</th>
+                                    }
+                                }
+                                else
+                                {
+                                    <th>-</th>
                                 }
                                 <th class="bg-warning text-dark">Total</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var tier in Model.TierHeaders)
+                            @if (Model.TierHeaders != null)
                             {
-                                <tr>
-                                    <td class="fw-bold text-start ps-3" style="color: @EventService.TierColors[tier]">@tier</td>
-                                    @foreach (var day in Model.DailyStats)
+                                @foreach (var tier in Model.TierHeaders)
+                                {
+                                    // ดึงสีมาใช้อย่างปลอดภัย
+                                    var tierColor = "#000";
+                                    if (EventCheckInDashboard.Services.EventService.TierColors.ContainsKey(tier))
                                     {
-                                        if (day.IsActiveDay)
+                                        tierColor = EventCheckInDashboard.Services.EventService.TierColors[tier];
+                                    }
+
+                                    <tr>
+                                        <td class="fw-bold text-start ps-3" style="color: @tierColor">@tier</td>
+
+                                        @if (Model.DailyStats != null && Model.DailyStats.Any())
                                         {
-                                            var val = day.TierCounts[tier];
-                                            <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                            @foreach (var day in Model.DailyStats)
+                                            {
+                                                if (day.IsActiveDay)
+                                                {
+                                                    // ดึงค่าอย่างปลอดภัย (กันเหนียวสุดๆ)
+                                                    int val = 0;
+                                                    if (day.TierCounts != null && day.TierCounts.ContainsKey(tier))
+                                                    {
+                                                        val = day.TierCounts[tier];
+                                                    }
+
+                                                    <td class="@(val == 0 ? "text-muted opacity-25" : "")">@val.ToString("N0")</td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="bg-light text-muted">-</td>
+                                                }
+                                            }
                                         }
                                         else
                                         {
-                                            <td class="bg-light text-muted">-</td>
+                                            <td class="text-muted">-</td>
                                         }
-                                    }
-                                    <td class="fw-bold bg-light">@Model.TotalTierStats[tier].ToString("N0")</td>
-                                </tr>
+
+                                        @{
+                                            int totalVal = 0;
+                                            if (Model.TableTotalTierStats != null && Model.TableTotalTierStats.ContainsKey(tier))
+                                            {
+                                                totalVal = Model.TableTotalTierStats[tier];
+                                            }
+                                        }
+                                        <td class="fw-bold bg-light">@totalVal.ToString("N0")</td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
@@ -159,6 +242,7 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // 1. Bar Chart (Timeline) - ข้อมูลครบทุกวัน
         const dates = @Html.Raw(Json.Serialize(Model.DailyStats.Select(d => d.DateDisplay)));
         const totals = @Html.Raw(Json.Serialize(Model.DailyStats.Select(d => d.TotalCheckIn)));
 
@@ -177,8 +261,9 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        const tierLabels = @Html.Raw(Json.Serialize(Model.TotalTierStats.Keys));
-        const tierData = @Html.Raw(Json.Serialize(Model.TotalTierStats.Values));
+        // 2. Pie Chart - ใช้ข้อมูล PieChartTierStats (เปลี่ยนตาม Filter)
+        const tierLabels = @Html.Raw(Json.Serialize(Model.PieChartTierStats.Keys));
+        const tierData = @Html.Raw(Json.Serialize(Model.PieChartTierStats.Values));
         const tierColors = ['#3B65AF', '#FF1D25', '#FFC000', '#8D96A3'];
 
         const ctxTier = document.getElementById('tierChart').getContext('2d');
@@ -186,35 +271,25 @@
             type: 'doughnut',
             data: {
                 labels: tierLabels,
-                datasets: [{ data: tierData, backgroundColor: tierColors, hoverOffset: 4 }]
+                datasets: [{
+                    data: tierData,
+                    backgroundColor: tierColors,
+                    hoverOffset: 4
+                }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'right' } },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                }
+            }
         });
     });
 </script>
-
 <style>
-    .kp-stat-box {
-        padding: 10px 20px;
-        text-align: center;
-        border: 2px solid;
-        border-radius: 8px;
-        background: white;
-        min-width: 120px;
-    }
-
-        .kp-stat-box small {
-            display: block;
-            color: #6c757d;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .kp-stat-box span {
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
-
     .kp-card {
         background: white;
         border-radius: 10px;
@@ -227,6 +302,11 @@
         font-weight: bold;
         border-bottom: 2px solid #f4e6c8;
         padding-bottom: 10px;
+    }
+
+    .table th {
+        font-weight: 600;
+        white-space: nowrap;
     }
 
     .opacity-25 {
