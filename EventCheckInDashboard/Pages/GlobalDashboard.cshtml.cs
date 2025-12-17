@@ -42,6 +42,7 @@ namespace EventCheckInDashboard.Pages
                 EventService.RedemptionTypes.RECEIPT,
                 EventService.RedemptionTypes.CASH_CARD,
                 EventService.RedemptionTypes.CARAT,
+                EventService.RedemptionTypes.CARD_X_RECEIPT,
                 EventService.RedemptionTypes.MEMBER_QUOTA
             };
             TierHeaders = EventService.TierColors.Keys.ToList();
@@ -53,7 +54,8 @@ namespace EventCheckInDashboard.Pages
                 IsActiveDay = true,
                 RedemptionCounts = RedemptionHeaders.ToDictionary(k => k, v => 0),
                 TierCounts = EventService.TierColors.Keys.ToDictionary(k => k, v => 0),
-                TotalCheckIn = 0
+                TotalCheckIn = 0,
+                
             }).ToList();
 
             // Aggregate

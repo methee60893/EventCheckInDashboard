@@ -13,7 +13,7 @@
             <h2 class="fw-bold text-primary mb-0">@Model.CurrentActivityName</h2>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a asp-page="/Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-page="/dashboardevent/Index">Home</a></li>
                     <li class="breadcrumb-item active" aria-current="page">Report</li>
                 </ol>
             </nav>
@@ -36,18 +36,18 @@
             </a>
         </div>
         <div class="d-flex gap-3">
-            <div class="kp-card px-4 py-2 text-center border-warning border-2">
+            @* <div class="kp-card px-4 py-2 text-center border-warning border-2">
                 <small class="text-muted d-block">TOTAL QUOTA</small>
                 <span class="fs-4 fw-bold">@Model.TotalQuota.ToString("N0")</span>
-            </div>
+            </div> *@
             <div class="kp-card px-4 py-2 text-center border-success border-2">
                 <small class="text-muted d-block">USED (@(Model.FilterDate.HasValue? Model.FilterDate.Value.ToString("dd MMM") : "All"))</small>
                 <span class="fs-4 fw-bold text-success">@Model.TotalUsed.ToString("N0")</span>
             </div>
-            <div class="kp-card px-4 py-2 text-center bg-light">
+            @* <div class="kp-card px-4 py-2 text-center bg-light">
                 <small class="text-muted d-block">REMAINING</small>
                 <span class="fs-4 fw-bold text-secondary">@((Model.TotalQuota - Model.TotalUsed).ToString("N0"))</span>
-            </div>
+            </div> *@
         </div>
     </div>
 

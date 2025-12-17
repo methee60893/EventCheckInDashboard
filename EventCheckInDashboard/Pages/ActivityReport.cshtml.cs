@@ -47,7 +47,7 @@ namespace EventCheckInDashboard.Pages
             // 1. ตรวจสอบ Activity
             var activities = _service.GetActivities();
             var currentAct = activities.FirstOrDefault(a => a.Id == id);
-            if (currentAct == null) return RedirectToPage("/Index");
+            if (currentAct == null) return RedirectToPage("/dashboardevent/Index");
 
             CurrentActivityName = currentAct.Name;
             TotalQuota = currentAct.TotalQuota;
@@ -57,7 +57,7 @@ namespace EventCheckInDashboard.Pages
 
             // 3. สร้าง Dropdown (Logic 18-25 Dec & Lucky Giftmas)
             var startDate = new DateTime(2025, 12, 18);
-            var endDate = new DateTime(2025, 12, 25);
+            var endDate = new DateTime(2025, 12, 28);
             var availableDates = new List<DateTime>();
 
             for (var dt = startDate; dt <= endDate; dt = dt.AddDays(1))
